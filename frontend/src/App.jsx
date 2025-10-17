@@ -1,5 +1,5 @@
-import SignUpintro from "./signUpintro.jsx"
-import HomePage from "./components/homepage.jsx"
+import SignUpintro from "./pages/signUpintro.jsx"
+import HomePage from "./pages/HomePage.jsx"
 function App() {
   return (
     <>
