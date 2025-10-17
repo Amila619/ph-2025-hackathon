@@ -1,8 +1,18 @@
 // import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Navigate } from 'react-router-dom'
 import SignUpintro from "./signUpintro.jsx"
 import HomePage from "./components/homepage.jsx"
+import Dashboard from './pages/Dashboard.page.jsx';
+import Login from './pages/Login.page.jsx';
+
 
 function App() {
+
+  // <BrowserRouter>
+  //       <Routes>
+  //           <Route path="/" element={<Login />} />
+  //           <Route path="/callback" element={<Dashboard />} />
+  //       </Routes>
+  //   </BrowserRouter>
 
   // const router = createBrowserRouter(
   //   createRoutesFromElements(
