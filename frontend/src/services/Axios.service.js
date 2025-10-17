@@ -4,7 +4,7 @@ import { sanitizeObject } from "../controllers/Sanitize.controller";
 
 export const AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL || "http://localhost:5000",
-  timeout: 5000,
+  timeout: 10000, // Increased timeout to 10 seconds
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
@@ -27,14 +27,12 @@ AxiosInstance.interceptors.request.use(function (config) {
 
   toast.error("Something went wrong!");
   console.error(error);
+  return Promise.reject(error);
 }
 );
 
 AxiosInstance.interceptors.response.use(function onFulfilled(response) {
-
-//   console.log("Response:", response.data);
-
-  toast.success(response.data?.message || "Success!");
+  // suppress global success toasts; pages will opt-in when needed
   return response;
 
 }, async function onRejected(error) {
@@ -42,6 +40,13 @@ AxiosInstance.interceptors.response.use(function onFulfilled(response) {
   const status = error.response?.status;
   const reqUrl = (originalRequest.url || "").toString();
   const isAuthEndpoint = reqUrl.includes('/api/auth/login') || reqUrl.includes('/api/auth/register') || reqUrl.includes('/api/auth/verify-otp') || reqUrl.includes('/api/auth/refresh');
+  const isTimeout = error.code === 'ECONNABORTED';
+
+  // Handle timeout errors - don't try refresh, just show error
+  if (isTimeout) {
+    toast.error("Request timeout. Please check your connection.");
+    return Promise.reject(error);
+  }
 
   // Do NOT try refresh for auth endpoints; let the error bubble for toast
   if (status === 401 && !originalRequest._retry && !isAuthEndpoint) {
@@ -68,6 +73,7 @@ AxiosInstance.interceptors.response.use(function onFulfilled(response) {
 
   toast.error(error.response?.data?.message || "Something went wrong!");
   console.error(error);
+  return Promise.reject(error);
 });
 
 // Attach access token if present

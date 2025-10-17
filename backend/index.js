@@ -10,6 +10,9 @@ import userRoutes from "./routes/user.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import serviceRoutes from "./routes/service.routes.js";
 import donationRoutes from "./routes/donation.routes.js";
+import welfareRoutes from "./routes/welfare.routes.js";
+import purchaseRoutes from "./routes/purchase.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
 import { blockBlacklistedForNonAdmins } from "./middleware/auth.middleware.js";
 import { verifyAccessToken } from "./util/JWTtoken.util.js";
 
@@ -57,5 +60,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/donations", donationRoutes);
+app.use("/api/welfare", welfareRoutes);
+app.use("/api/purchase", purchaseRoutes);
+app.use("/api/cart", cartRoutes);
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

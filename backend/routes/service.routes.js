@@ -5,10 +5,10 @@ import { createService, listServices, getService, updateService, deleteService }
 const router = express.Router();
 
 router.get('/', listServices);
-router.post('/', authenticate, authorize('admin'), createService);
+router.post('/', authenticate, createService);
 router.get('/:id', getService);
-router.put('/:id', authenticate, authorize('admin'), updateService);
-router.delete('/:id', authenticate, authorize('admin'), deleteService);
+router.put('/:id', authenticate, updateService);
+router.delete('/:id', authenticate, deleteService);
 
 export default router;
 

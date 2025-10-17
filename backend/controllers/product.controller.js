@@ -3,7 +3,9 @@ import { HTTP_STATUS } from "../const/http-status.const.js";
 
 export const createProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body);
+    const sellerId = req.user?.sub;
+    const body = { ...req.body, seller_id: req.body?.seller_id || sellerId };
+    const product = await Product.create(body);
     res.status(HTTP_STATUS.CREATED).json(product);
   } catch (err) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({ message: err.message });

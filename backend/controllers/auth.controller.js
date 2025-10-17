@@ -7,6 +7,7 @@ import 'dotenv/config';
 import Crypto from "crypto";
 import sendEmail from "../service/email.service.js";
 import cookie from "cookie";
+import User from "../model/user.model.js";
 
 export const register = async (req, res) => {
   try {
@@ -48,9 +49,14 @@ export const verifyOtp = async (req, res) => {
   const storedOtp = await Redis_getValue(`otp:${user._id}`);
 
   if (storedOtp && storedOtp == otp) {
+    // Always fetch from DB to ensure we sign tokens with the correct role
+    const dbUser = await User.findById(user._id).lean();
+    if (!dbUser) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: RESPONSE_MESSAGE.LOGIN_FAILED });
+    }
 
-    const accessToken = generateAccessToken(user);
-    const refreshToken = generateRefreshToken(user);
+    const accessToken = generateAccessToken(dbUser);
+    const refreshToken = generateRefreshToken(dbUser);
 
     Redis_deleteKey(`otp:${user._id}`);
     Redis_addValue(`refreshToken:${user._id}`, refreshToken, 7 * 24 * 60 * 60); // track valid refresh tokens
@@ -63,7 +69,7 @@ export const verifyOtp = async (req, res) => {
       maxAge: parseInt(process.env.JWT_REFRESH_TOKEN_EXPIRES_IN_INT)
     }));
 
-    return res.status(HTTP_STATUS.OK).json({ message: RESPONSE_MESSAGE.LOGIN_SUCCESS, user: user, accessToken: accessToken });
+    return res.status(HTTP_STATUS.OK).json({ message: RESPONSE_MESSAGE.LOGIN_SUCCESS, user: dbUser, accessToken: accessToken });
   }
   res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: RESPONSE_MESSAGE.INVALID_OTP });
 };
@@ -79,7 +85,13 @@ export const refresh = async (req, res) => {
     // Optional: check token exists in Redis set for this user
     // If you want strict validation per token instance, store a jti
 
-    const user = { _id: payload.sub, universityMail: payload.email };
+    // Fetch user to include role in refreshed access token
+    const dbUser = await User.findById(payload.sub).lean();
+    if (!dbUser) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: RESPONSE_MESSAGE.LOGIN_FAILED });
+    }
+
+    const user = { _id: dbUser._id, universityMail: dbUser.universityMail, role: dbUser.role };
     const newAccess = generateAccessToken(user);
     return res.status(HTTP_STATUS.OK).json({ accessToken: newAccess });
   } catch (err) {

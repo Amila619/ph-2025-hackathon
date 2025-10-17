@@ -7,15 +7,22 @@ import VerifyOtpPage from './pages/VerifyOtp.page.jsx';
 import RegisterPage from './pages/Register.page.jsx';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { AuthProvider } from './context/Auth.context.jsx';
+import AdminDashboard from './pages/AdminDashboard.page.jsx';
+import UserDashboard from './pages/UserDashboard.page.jsx';
 
 createRoot(document.getElementById('root')).render(
-    <BrowserRouter>
-        <Routes>
-            <Route index element={<Login />} />
-            <Route path='/verify-otp' element={<VerifyOtpPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/register" element={<RegisterPage />} />
-        </Routes>
-        <ToastContainer position="top-right" autoClose={3000} hideProgressBar newestOnTop closeOnClick pauseOnHover theme="colored" />
-    </BrowserRouter>
+    <AuthProvider>
+        <BrowserRouter>
+            <Routes>
+                <Route index element={<Login />} />
+                <Route path='/verify-otp' element={<VerifyOtpPage />} />
+                {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+                <Route path="/dashboard/admin" element={<AdminDashboard />} />
+                <Route path="/dashboard/user" element={<UserDashboard />} />
+                <Route path="/register" element={<RegisterPage />} />
+            </Routes>
+            <ToastContainer position="top-right" autoClose={3000} hideProgressBar newestOnTop closeOnClick pauseOnHover theme="colored" />
+        </BrowserRouter>
+    </AuthProvider>
 )

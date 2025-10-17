@@ -1,8 +1,9 @@
 import express from "express";
 import { authenticate, authorize } from "../middleware/auth.middleware.js";
-import { createUser, listUsers, getUser, updateUser, deleteUser } from "../controllers/user.controller.js";
-
+import { getMe, createUser, listUsers, getUser, updateUser, deleteUser } from "../controllers/user.controller.js";
 const router = express.Router();
+
+router.get('/me', authenticate, getMe);
 
 // Admin-only for listing all users
 router.get('/', authenticate, authorize('admin'), listUsers);

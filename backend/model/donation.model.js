@@ -12,6 +12,10 @@ const donationSchema = new mongoose.Schema({
   donated_amount: {
     type: Number,
     default: 0
+  },
+  consumed_amount: {
+    type: Number,
+    default: 0
   }
 }, { timestamps: true });
 

@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 
 const serviceSchema = new mongoose.Schema({
+  seller_id: {
+    type: String,
+    trim: true
+  },
   s_id: {
     type: String,
     trim: true
