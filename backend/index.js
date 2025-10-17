@@ -1,39 +1,31 @@
-import express, { json } from "express";
-import { connect } from "mongoose";
-import { configDotenv } from "dotenv";
+import express, { response } from "express";
 import cors from "cors";
-import authRouter from "./routes/authRoutes.js";
-import authConfig from "./config/authConfig.js";
+// import { connectDB } from "./src/config/db.js";
+import dotenv from "dotenv";
+// import {RedisClient} from "./src/services/redis.service.js";
+import { sanitizeMongoInput } from "express-v5-mongo-sanitize";
+import {xss} from "express-xss-sanitizer";
+import { connectDB } from "./config/db.js";
+import { RedisClient } from "./service/redis.service.js";
+import authRoutes from "./routes/auth.routes.js";
 
-configDotenv();
-
-const PORT = process.env.PORT || 8000;
+dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
-app.use(json());
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL,
-    credentials: true,
-  })
-);
+app.use(express.json());
+app.use(cors({
+    origin: process.env.CLIENT_URL || "*",
+    credentials: true
+}));
+app.use(sanitizeMongoInput);
+app.use(xss());
 
-// auth router attaches /login, /logout, and /callback routes to the baseURL
-app.use(authConfig);
+connectDB();
+RedisClient.connect();
 
-app.get("/hello", (req, res) => {
-  res.send("<h1>The API is working Successfully</h1>");
-});
+// Routes
+app.use("/api/auth", authRoutes);
 
-app.use("/api/auth", authRouter);
-
-try {
-  // await connect(URI);
-  // console.log("Database successfully connected");
-  app.listen(PORT, async () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-} catch (error) {
-  console.log(error);
-}
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

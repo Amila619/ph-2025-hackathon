@@ -3,12 +3,16 @@ import './index.css'
 import { BrowserRouter, Route, Routes } from "react-router";
 import Dashboard from './pages/Dashboard.page.jsx';
 import Login from './pages/Login.page.jsx';
+import VerifyOtpPage from './pages/VerifyOtp.page.jsx';
+import RegisterPage from './pages/Register.page.jsx';
 
 createRoot(document.getElementById('root')).render(
     <BrowserRouter>
         <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/callback" element={<Dashboard />} />
+            <Route index element={<Login />} />
+            <Route path='/verify-otp' element={<VerifyOtpPage />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/register" element={<RegisterPage />} />
         </Routes>
     </BrowserRouter>
 )
