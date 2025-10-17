@@ -11,6 +11,7 @@ const AdminDashboard = () => {
     const [services, setServices] = useState([]);
     const [apps, setApps] = useState([]);
     const [cart, setCart] = useState(null);
+    const [payments, setPayments] = useState([]);
     const [users, setUsers] = useState([]);
     const [userModalVisible, setUserModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
@@ -18,6 +19,13 @@ const AdminDashboard = () => {
 
     useEffect(() => {
         if (!isLoggedIn) { navigate('/', { replace: true }); return; }
+        
+        // Quick role check first
+        if (role && role !== 'admin') {
+            navigate('/dashboard/user', { replace: true });
+            return;
+        }
+        
         (async () => {
             try {
                 // Only refresh user data if we don't have it yet
@@ -36,19 +44,28 @@ const AdminDashboard = () => {
                     return; 
                 }
                 
-                // Load dashboard data
-                const [pRes, sRes, aRes, cRes, uRes] = await Promise.all([
+                // Load dashboard data - only for admin users
+                const [pRes, sRes, aRes, cRes, uRes, payRes] = await Promise.all([
                     AxiosInstance.get('/api/products'),
                     AxiosInstance.get('/api/services'),
                     AxiosInstance.get('/api/welfare'),
                     AxiosInstance.get('/api/cart'),
-                    AxiosInstance.get('/api/users')
+                    AxiosInstance.get('/api/users'),
+                    AxiosInstance.get('/api/payment/all').catch(err => {
+                        // If payment endpoint fails, just return empty array
+                        if (err.response?.status === 403) {
+                            console.warn('Payment access denied - user may not be admin');
+                            return { data: [] };
+                        }
+                        throw err;
+                    })
                 ]);
                 setProducts(pRes.data || []);
                 setServices(sRes.data || []);
                 setApps(aRes.data || []);
                 setCart(cRes.data || { items: [] });
                 setUsers(uRes.data || []);
+                setPayments(payRes.data || []);
             } catch (err) {
                 // Only redirect on auth errors, not timeouts
                 if (err.response?.status === 401 || err.response?.status === 403) {
@@ -58,7 +75,7 @@ const AdminDashboard = () => {
                 }
             }
         })();
-    }, [isLoggedIn, navigate, refreshMe, user]);
+    }, [isLoggedIn, navigate, refreshMe, user, role]);
 
     const reviewApp = async (id, action) => {
         await AxiosInstance.post(`/api/welfare/${id}/review`, { action });
@@ -317,6 +334,85 @@ const AdminDashboard = () => {
                               )}
                             />
                           </Card>
+                        )
+                    },
+                    {
+                        key: 'payments',
+                        label: 'All Payments',
+                        children: (
+                            <Card title="Payment History">
+                                <Table
+                                    dataSource={payments}
+                                    columns={[
+                                        {
+                                            title: 'Order ID',
+                                            dataIndex: 'order_id',
+                                            key: 'order_id',
+                                            width: 200
+                                        },
+                                        {
+                                            title: 'Type',
+                                            dataIndex: 'payment_type',
+                                            key: 'payment_type',
+                                            render: (type) => (
+                                                <Tag color={
+                                                    type === 'premium_upgrade' ? 'gold' :
+                                                    type === 'product_purchase' ? 'blue' :
+                                                    type === 'service_purchase' ? 'green' : 'default'
+                                                }>
+                                                    {type.replace('_', ' ').toUpperCase()}
+                                                </Tag>
+                                            )
+                                        },
+                                        {
+                                            title: 'Buyer',
+                                            dataIndex: 'buyer_uid',
+                                            key: 'buyer_uid',
+                                            render: (buyerId) => {
+                                                const buyer = users.find(u => u._id === buyerId);
+                                                return buyer ? buyer.universityMail : buyerId;
+                                            }
+                                        },
+                                        {
+                                            title: 'Seller',
+                                            dataIndex: 'seller_uid',
+                                            key: 'seller_uid',
+                                            render: (sellerId) => {
+                                                if (sellerId === 'system') return 'System';
+                                                const seller = users.find(u => u._id === sellerId);
+                                                return seller ? seller.universityMail : sellerId;
+                                            }
+                                        },
+                                        {
+                                            title: 'Amount',
+                                            dataIndex: 'payment_amount',
+                                            key: 'payment_amount',
+                                            render: (amount) => `LKR ${amount.toFixed(2)}`
+                                        },
+                                        {
+                                            title: 'Status',
+                                            dataIndex: 'payment_status',
+                                            key: 'payment_status',
+                                            render: (status) => (
+                                                <Tag color={
+                                                    status === 'completed' ? 'green' :
+                                                    status === 'pending' ? 'orange' :
+                                                    status === 'failed' ? 'red' : 'default'
+                                                }>
+                                                    {status.toUpperCase()}
+                                                </Tag>
+                                            )
+                                        },
+                                        {
+                                            title: 'Date',
+                                            dataIndex: 'createdAt',
+                                            key: 'createdAt',
+                                            render: (date) => new Date(date).toLocaleDateString()
+                                        }
+                                    ]}
+                                    pagination={{ pageSize: 10 }}
+                                />
+                            </Card>
                         )
                     }
                 ]}

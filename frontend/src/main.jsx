@@ -17,10 +17,11 @@ createRoot(document.getElementById('root')).render(
             <Routes>
                 <Route index element={<Login />} />
                 <Route path='/verify-otp' element={<VerifyOtpPage />} />
-                {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+                <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/dashboard/admin" element={<AdminDashboard />} />
                 <Route path="/dashboard/user" element={<UserDashboard />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="*" element={<Dashboard />} />
             </Routes>
             <ToastContainer position="top-right" autoClose={3000} hideProgressBar newestOnTop closeOnClick pauseOnHover theme="colored" />
         </BrowserRouter>

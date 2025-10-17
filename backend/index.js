@@ -13,6 +13,7 @@ import donationRoutes from "./routes/donation.routes.js";
 import welfareRoutes from "./routes/welfare.routes.js";
 import purchaseRoutes from "./routes/purchase.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 import { blockBlacklistedForNonAdmins } from "./middleware/auth.middleware.js";
 import { verifyAccessToken } from "./util/JWTtoken.util.js";
 
@@ -63,5 +64,6 @@ app.use("/api/donations", donationRoutes);
 app.use("/api/welfare", welfareRoutes);
 app.use("/api/purchase", purchaseRoutes);
 app.use("/api/cart", cartRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
