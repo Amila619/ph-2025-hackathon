@@ -1,3 +1,4 @@
+import { FiShoppingCart, FiRefreshCcw, FiStar } from "react-icons/fi";
 import { useEffect } from "react";
 
 function SignUpintro() {
@@ -36,15 +37,17 @@ function SignUpintro() {
     <div className="max-w-6xl mx-auto p-8 text-center">
       {/* Header */}
       <header className="mb-12">
+        {/*
         <h1 className="text-4xl font-bold mb-4">Welcome to the Sign-Up Page!</h1>
-        <p className="text-gray-600">What are you looking for</p>
+        */}
+        <p className="text-xl font-semibold mb-6">What are you looking for ?</p>
       </header>
 
       {/* Cards */}
       <main className="flex flex-wrap justify-center gap-8">
         {/* Looking For */}
-        <div className="bg-white rounded-xl shadow-md p-8 min-w-[240px]">
-          <h2 className="text-xl font-semibold mb-6">I am looking for</h2>
+        <div className="bg-white/30 rounded-xl shadow-md p-8 min-w-[240px] ">
+          <h2 className="text-xl font-semibold mb-6 text-black">I am looking for</h2>
 
           <button className="flex items-center justify-center gap-3 w-full py-3 mb-4 rounded-lg bg-red-800 text-white font-medium text-base hover:bg-red-700 hover:-translate-y-0.5 hover:shadow-md transition-all">
             <span
@@ -64,8 +67,8 @@ function SignUpintro() {
         </div>
 
         {/* Offering */}
-        <div className="bg-white rounded-xl shadow-md p-8 min-w-[240px]">
-          <h2 className="text-xl font-semibold mb-6">I am offering</h2>
+        <div className="bg-white/30 rounded-xl shadow-md p-8 min-w-[240px]">
+          <h2 className="text-xl font-semibold mb-6 text-black">I am offering</h2>
 
           <button className="flex items-center justify-center gap-3 w-full py-3 mb-4 rounded-lg bg-red-800 text-white font-medium text-base hover:bg-red-700 hover:-translate-y-0.5 hover:shadow-md transition-all">
             <span
