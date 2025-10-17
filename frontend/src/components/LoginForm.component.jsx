@@ -1,5 +1,6 @@
 import { MailOutlined } from '@ant-design/icons';
 import { Button, Checkbox, Form, Input, Flex } from 'antd';
+import { Link } from 'react-router';
 
 const LoginFormComponent = ({ onFinish }) => {
 
@@ -28,7 +29,7 @@ const LoginFormComponent = ({ onFinish }) => {
         <Button block type="primary" htmlType="submit">
           Log in
         </Button>
-        or <a href="">Register now!</a>
+        or <Link to="/register">Register now!</Link>
       </Form.Item>
     </Form>
   );

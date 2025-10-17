@@ -1,30 +1,27 @@
-import bcrypt from "bcrypt";
 import userModel from "../model/user.model.js";
 import { RESPONSE_MESSAGE } from "../const/response.const.js";
 
-export const registerUser = async (universityMail, password) => {
+export const registerUser = async (universityMail) => {
+  try {
+    const normalizedEmail = (universityMail || "").trim().toLowerCase();
+    const existingUser = await userModel.findOne({ universityMail: normalizedEmail });
+    if (existingUser) throw new Error(RESPONSE_MESSAGE.USER_ALREADY_EXISTS);
 
-  const existingUser = await userModel.findOne({ universityMail });
-  if (existingUser) throw new Error(RESPONSE_MESSAGE.USER_ALREADY_EXISTS);
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const newUser = new userModel({ universityMail, password: hashedPassword });
-  await newUser.save();
-
-  // return newUser as User;
+    const newUser = new userModel({ universityMail: normalizedEmail });
+    await newUser.save();
+    return newUser;
+  } catch (error) {
+    throw new Error(RESPONSE_MESSAGE.USER_NOT_FOUND);
+  }
 };
 
 export const loginUser = async (universityMail) => {
-
-  // const newUser = new userModel({ universityMail });
-  // await newUser.save();
-
-  const user = await userModel.findOne({ universityMail });
-  if (!user) throw new Error(RESPONSE_MESSAGE.USER_NOT_FOUND);
-
-  // const isMatch = await bcrypt.compare(password, user.password);
-  // if (!isMatch) throw new Error(RESPONSE_MESSAGE.LOGIN_FAILED);
-
-  return user;
+  try {
+    const normalizedEmail = (universityMail || "").trim().toLowerCase();
+    const user = await userModel.findOne({ universityMail: normalizedEmail });
+    if (!user) throw new Error(RESPONSE_MESSAGE.USER_NOT_FOUND);
+    return user;
+  } catch (error) {
+    throw new Error(RESPONSE_MESSAGE.USER_NOT_FOUND);
+  }
 };

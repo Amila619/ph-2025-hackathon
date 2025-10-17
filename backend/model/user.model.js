@@ -1,10 +1,13 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  _id: mongoose.Schema.Types.ObjectId,
-  universityMail: { 
-    type: String, required: true, unique: true 
+  universityMail: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
   }
-});
+}, { timestamps: true });
 
 export default mongoose.model("User", userSchema);
