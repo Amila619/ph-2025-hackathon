@@ -1,11 +1,27 @@
-// import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Navigate } from 'react-router-dom'
-import SignUpintro from "./signUpintro.jsx"
+// import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Navigate } from 'react-router-import SignUpintro from "./components/signUpintro"
+import SignUpintro from "./components/signUpintro"
 import HomePage from "./components/homepage.jsx"
-import Dashboard from './pages/Dashboard.page.jsx';
+import Dashboard from './pages/AdminDashboard.page.jsx';
 import Login from './pages/Login.page.jsx';
-
+import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider } from "react-router-dom";
+import Donation from "./pages/Donation.page.jsx";
+import RootLayout from "./layouts/RootLayout.jsx";
+import SignUp from "./pages/Signup.page.jsx";
+import ProductGallery from "./pages/ProductGallery.page.jsx";
 
 function App() {
+
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <Route path="/" element={<RootLayout />}>
+        <Route path="/" element={<Donation />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/product-gallery" element={<ProductGallery />} />
+      </Route>
+    )
+  )
 
   // <BrowserRouter>
   //       <Routes>
@@ -38,7 +54,7 @@ function App() {
 
   return (
     <div>
-      {/* <RouterProvider router={router} /> */}
+      <RouterProvider router={router} />
     </div>
   )
 }

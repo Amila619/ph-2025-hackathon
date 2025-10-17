@@ -3,7 +3,7 @@ import { Button, Card, Form, Input, Typography, Checkbox, message } from "antd";
 import { 
   UserOutlined, 
   LockOutlined, 
-  LoginOutlined,
+  SmileOutlined,
   SafetyOutlined,
   ThunderboltOutlined,
   GlobalOutlined
@@ -11,37 +11,35 @@ import {
 
 const { Title, Text, Link } = Typography;
 
-const Login = () => {
+const SignUp = () => {
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          name: values.name,
           email: values.email,
-          password: values.password,
+          password: values.password
         }),
-        credentials: 'include', // Important for cookies
+        credentials: 'include',
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        message.success('Login successful!');
-        localStorage.setItem('auth', 'true');
-        localStorage.setItem('user', JSON.stringify(data.user));
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+        message.success('Registration successful! Please log in.');
+        window.location.href = '/login';
       } else {
-        message.error(data.message || 'Login failed. Please try again.');
+        message.error(data.message || 'Registration failed. Please try again.');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Registration error:', error);
       message.error('An error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -93,28 +91,40 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Right Side - Login Card */}
+        {/* Right Side - Sign Up Card */}
         <Card className="shadow-2xl rounded-2xl border-0">
           <div className="space-y-6">
             {/* Logo/Icon */}
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full shadow-lg mb-4">
-                <LoginOutlined className="text-4xl text-white" />
+                <SmileOutlined className="text-4xl text-white" />
               </div>
-              <Title level={2} className="mb-2">Welcome Back!</Title>
+              <Title level={2} className="mb-2">Create Account</Title>
               <Text type="secondary" className="text-base">
-                Sign in to access your dashboard
+                Sign up to join the ResLink community
               </Text>
             </div>
 
-            {/* Login Form */}
+            {/* Sign Up Form */}
             <Form
-              name="login"
+              name="signup"
               onFinish={onFinish}
               layout="vertical"
               size="large"
               requiredMark={false}
             >
+              <Form.Item
+                name="name"
+                label="Full Name"
+                rules={[{ required: true, message: 'Please enter your full name!' }]}
+              >
+                <Input 
+                  prefix={<UserOutlined className="text-gray-400" />} 
+                  placeholder="Enter your full name"
+                  className="rounded-lg"
+                />
+              </Form.Item>
+
               <Form.Item
                 name="email"
                 label="Email"
@@ -133,7 +143,11 @@ const Login = () => {
               <Form.Item
                 name="password"
                 label="Password"
-                rules={[{ required: true, message: 'Please input your password!' }]}
+                rules={[
+                  { required: true, message: 'Please input your password!' },
+                  { min: 6, message: 'Password must be minimum 6 characters.' }
+                ]}
+                hasFeedback
               >
                 <Input.Password
                   prefix={<LockOutlined className="text-gray-400" />}
@@ -142,13 +156,47 @@ const Login = () => {
                 />
               </Form.Item>
 
-              <Form.Item>
-                <div className="flex items-center justify-between">
-                  <Checkbox>Remember me</Checkbox>
+              <Form.Item
+                name="confirm"
+                label="Confirm Password"
+                dependencies={['password']}
+                hasFeedback
+                rules={[
+                  { required: true, message: 'Please confirm your password!' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue('password') === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject('The two passwords do not match!');
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password
+                  prefix={<LockOutlined className="text-gray-400" />}
+                  placeholder="Confirm your password"
+                  className="rounded-lg"
+                />
+              </Form.Item>
+
+              <Form.Item name="agreement" valuePropName="checked" rules={[
+                  {
+                    validator: (_, value) =>
+                      value ? Promise.resolve() : Promise.reject('You must accept the terms and privacy policy'),
+                  },
+                ]}
+              >
+                <Checkbox>
+                  I agree to the{" "}
                   <Link href="#" className="text-indigo-600 hover:text-indigo-700">
-                    Forgot password?
-                  </Link>
-                </div>
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="#" className="text-indigo-600 hover:text-indigo-700">
+                    Privacy Policy
+                  </Link>.
+                </Checkbox>
               </Form.Item>
 
               <Form.Item className="mb-0">
@@ -156,20 +204,19 @@ const Login = () => {
                   type="primary"
                   htmlType="submit"
                   loading={loading}
-                  icon={<LoginOutlined />}
                   className="w-full h-12 text-lg font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 border-0 hover:from-indigo-700 hover:to-purple-700 shadow-lg"
                 >
-                  Sign In
+                  Sign Up
                 </Button>
               </Form.Item>
             </Form>
 
-            {/* Sign Up Link */}
+            {/* Login Link */}
             <div className="text-center pt-4 border-t border-gray-200">
               <Text type="secondary">
-                Don't have an account?{" "}
-                <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-semibold">
-                  Sign up now
+                Already have an account?{" "}
+                <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-semibold">
+                  Sign in
                 </Link>
               </Text>
             </div>
@@ -177,14 +224,7 @@ const Login = () => {
             {/* Footer */}
             <div className="text-center">
               <Text type="secondary" className="text-xs">
-                By signing in, you agree to our{" "}
-                <Link href="#" className="text-indigo-600 hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="#" className="text-indigo-600 hover:underline">
-                  Privacy Policy
-                </Link>
+                © 2025 ResLink. All rights reserved.
               </Text>
             </div>
           </div>
@@ -201,4 +241,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default SignUp;
