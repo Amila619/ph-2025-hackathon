@@ -1,6 +1,8 @@
+import SignUpintro from "./signUpintro.jsx"
 function App() {
   return (
     <>
+      <SignUpintro/>
     </>
   )
 }
