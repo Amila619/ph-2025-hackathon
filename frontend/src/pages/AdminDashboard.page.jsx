@@ -1,4 +1,4 @@
-import { Button, Card, List, Typography, Tabs, Table, Tag, Space, Form, Input, InputNumber } from 'antd';
+import { Button, Card, List, Typography, Tabs, Table, Tag, Space, Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
 import { AxiosInstance } from '../services/Axios.service';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -11,6 +11,10 @@ const AdminDashboard = () => {
     const [services, setServices] = useState([]);
     const [apps, setApps] = useState([]);
     const [cart, setCart] = useState(null);
+    const [users, setUsers] = useState([]);
+    const [userModalVisible, setUserModalVisible] = useState(false);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [userForm] = Form.useForm();
 
     useEffect(() => {
         if (!isLoggedIn) { navigate('/', { replace: true }); return; }
@@ -33,16 +37,18 @@ const AdminDashboard = () => {
                 }
                 
                 // Load dashboard data
-                const [pRes, sRes, aRes, cRes] = await Promise.all([
+                const [pRes, sRes, aRes, cRes, uRes] = await Promise.all([
                     AxiosInstance.get('/api/products'),
                     AxiosInstance.get('/api/services'),
                     AxiosInstance.get('/api/welfare'),
-                    AxiosInstance.get('/api/cart')
+                    AxiosInstance.get('/api/cart'),
+                    AxiosInstance.get('/api/users')
                 ]);
                 setProducts(pRes.data || []);
                 setServices(sRes.data || []);
                 setApps(aRes.data || []);
                 setCart(cRes.data || { items: [] });
+                setUsers(uRes.data || []);
             } catch (err) {
                 // Only redirect on auth errors, not timeouts
                 if (err.response?.status === 401 || err.response?.status === 403) {
@@ -85,6 +91,69 @@ const AdminDashboard = () => {
         localStorage.removeItem('accessToken');
         sessionStorage.removeItem('welcomed');
         navigate('/', { replace: true });
+    };
+
+    // User Management Functions
+    const handleCreateUser = async (values) => {
+        try {
+            await AxiosInstance.post('/api/users', values);
+            message.success('User created successfully');
+            const uRes = await AxiosInstance.get('/api/users');
+            setUsers(uRes.data || []);
+            userForm.resetFields();
+        } catch (err) {
+            message.error('Failed to create user');
+        }
+    };
+
+    const handleUpdateUser = async (values) => {
+        try {
+            await AxiosInstance.put(`/api/users/${selectedUser._id}`, values);
+            message.success('User updated successfully');
+            const uRes = await AxiosInstance.get('/api/users');
+            setUsers(uRes.data || []);
+            setUserModalVisible(false);
+            setSelectedUser(null);
+            userForm.resetFields();
+        } catch (err) {
+            message.error('Failed to update user');
+        }
+    };
+
+    const handleDeleteUser = async (userId) => {
+        try {
+            await AxiosInstance.delete(`/api/users/${userId}`);
+            message.success('User deleted successfully');
+            const uRes = await AxiosInstance.get('/api/users');
+            setUsers(uRes.data || []);
+        } catch (err) {
+            message.error('Failed to delete user');
+        }
+    };
+
+    const openUserModal = (user = null) => {
+        setSelectedUser(user);
+        if (user) {
+            userForm.setFieldsValue({
+                universityMail: user.universityMail,
+                role: user.role,
+                isWelfareReciever: user.isWelfareReciever,
+                isPremium: user.isPremium,
+                'name.fname': user.name?.fname,
+                'name.mname': user.name?.mname,
+                'name.lname': user.name?.lname,
+                'address.street': user.address?.street,
+                'address.city': user.address?.city,
+                'address.country': user.address?.country,
+                'address.postalcode': user.address?.postalcode,
+                'contact.email': user.contact?.email,
+                'contact.phone': user.contact?.phone,
+                gender: user.gender
+            });
+        } else {
+            userForm.resetFields();
+        }
+        setUserModalVisible(true);
     };
 
     return (
@@ -202,6 +271,39 @@ const AdminDashboard = () => {
                         )
                     },
                     {
+                        key: 'users',
+                        label: 'User Management',
+                        children: (
+                            <>
+                                <Card title="Users" style={{ marginBottom: 16 }}>
+                                    <div style={{ marginBottom: 16 }}>
+                                        <Button type="primary" onClick={() => openUserModal()}>
+                                            Add New User
+                                        </Button>
+                                    </div>
+                                    <Table
+                                        rowKey="_id"
+                                        dataSource={users}
+                                        columns={[
+                                            { title: 'Email', dataIndex: 'universityMail' },
+                                            { title: 'Role', dataIndex: 'role', render: (role) => <Tag color={role === 'admin' ? 'red' : 'blue'}>{role}</Tag> },
+                                            { title: 'Welfare Receiver', dataIndex: 'isWelfareReciever', render: (val) => <Tag color={val ? 'green' : 'default'}>{val ? 'Yes' : 'No'}</Tag> },
+                                            { title: 'Premium', dataIndex: 'isPremium', render: (val) => <Tag color={val ? 'gold' : 'default'}>{val ? 'Yes' : 'No'}</Tag> },
+                                            { title: 'Name', render: (_, record) => `${record.name?.fname || ''} ${record.name?.lname || ''}`.trim() || 'N/A' },
+                                            { title: 'Phone', dataIndex: ['contact', 'phone'] },
+                                            { title: 'Actions', render: (_, record) => (
+                                                <Space>
+                                                    <Button size="small" onClick={() => openUserModal(record)}>Edit</Button>
+                                                    <Button size="small" danger onClick={() => handleDeleteUser(record._id)}>Delete</Button>
+                                                </Space>
+                                            )}
+                                        ]}
+                                    />
+                                </Card>
+                            </>
+                        )
+                    },
+                    {
                         key: 'cart',
                         label: 'Cart',
                         children: (
@@ -219,6 +321,108 @@ const AdminDashboard = () => {
                     }
                 ]}
             />
+            
+            {/* User Modal */}
+            <Modal
+                title={selectedUser ? 'Edit User' : 'Add New User'}
+                open={userModalVisible}
+                onCancel={() => {
+                    setUserModalVisible(false);
+                    setSelectedUser(null);
+                    userForm.resetFields();
+                }}
+                footer={null}
+                width={800}
+            >
+                <Form
+                    form={userForm}
+                    layout="vertical"
+                    onFinish={selectedUser ? handleUpdateUser : handleCreateUser}
+                >
+                    <Form.Item name="universityMail" label="Email" rules={[{ required: true, type: 'email' }]}>
+                        <Input placeholder="user@university.edu" />
+                    </Form.Item>
+                    
+                    <Form.Item name="role" label="Role" rules={[{ required: true }]}>
+                        <Select placeholder="Select role">
+                            <Select.Option value="user">User</Select.Option>
+                            <Select.Option value="admin">Admin</Select.Option>
+                        </Select>
+                    </Form.Item>
+                    
+                    <Form.Item name="isWelfareReciever" label="Welfare Receiver" valuePropName="checked">
+                        <Switch />
+                    </Form.Item>
+                    
+                    <Form.Item name="isPremium" label="Premium User" valuePropName="checked">
+                        <Switch />
+                    </Form.Item>
+                    
+                    <Typography.Title level={5}>Personal Information</Typography.Title>
+                    
+                    <Form.Item name="name.fname" label="First Name">
+                        <Input placeholder="First name" />
+                    </Form.Item>
+                    
+                    <Form.Item name="name.mname" label="Middle Name">
+                        <Input placeholder="Middle name" />
+                    </Form.Item>
+                    
+                    <Form.Item name="name.lname" label="Last Name">
+                        <Input placeholder="Last name" />
+                    </Form.Item>
+                    
+                    <Form.Item name="gender" label="Gender">
+                        <Select placeholder="Select gender">
+                            <Select.Option value="m">Male</Select.Option>
+                            <Select.Option value="f">Female</Select.Option>
+                        </Select>
+                    </Form.Item>
+                    
+                    <Typography.Title level={5}>Contact Information</Typography.Title>
+                    
+                    <Form.Item name="contact.email" label="Contact Email">
+                        <Input placeholder="contact@email.com" />
+                    </Form.Item>
+                    
+                    <Form.Item name="contact.phone" label="Phone">
+                        <Input placeholder="Phone number" />
+                    </Form.Item>
+                    
+                    <Typography.Title level={5}>Address</Typography.Title>
+                    
+                    <Form.Item name="address.street" label="Street">
+                        <Input placeholder="Street address" />
+                    </Form.Item>
+                    
+                    <Form.Item name="address.city" label="City">
+                        <Input placeholder="City" />
+                    </Form.Item>
+                    
+                    <Form.Item name="address.country" label="Country">
+                        <Input placeholder="Country" />
+                    </Form.Item>
+                    
+                    <Form.Item name="address.postalcode" label="Postal Code">
+                        <InputNumber placeholder="Postal code" style={{ width: '100%' }} />
+                    </Form.Item>
+                    
+                    <Form.Item>
+                        <Space>
+                            <Button type="primary" htmlType="submit">
+                                {selectedUser ? 'Update User' : 'Create User'}
+                            </Button>
+                            <Button onClick={() => {
+                                setUserModalVisible(false);
+                                setSelectedUser(null);
+                                userForm.resetFields();
+                            }}>
+                                Cancel
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Modal>
         </div>
     )
 }
