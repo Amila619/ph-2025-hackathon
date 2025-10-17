@@ -8,14 +8,13 @@ import authConfig from "./config/authConfig.js";
 configDotenv();
 
 const PORT = process.env.PORT || 8000;
-const ORIGIN = process.env.ORIGIN;
 
 const app = express();
 
 app.use(json());
 app.use(
   cors({
-    origin: ORIGIN,
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   })
 );
