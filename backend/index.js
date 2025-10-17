@@ -2,6 +2,8 @@ import express, { json } from "express";
 import { connect } from "mongoose";
 import { configDotenv } from "dotenv";
 import cors from "cors";
+import authRouter from "./routes/authRoutes.js";
+import authConfig from "./config/authConfig.js";
 
 configDotenv();
 
@@ -20,13 +22,18 @@ app.use(
   })
 );
 
-app.get("/", (req, res) => {
+// auth router attaches /login, /logout, and /callback routes to the baseURL
+app.use(authConfig);
+
+app.get("/hello", (req, res) => {
   res.send("<h1>The API is working Successfully</h1>");
 });
 
+app.use("/", authRouter);
+
 try {
-  await connect(URI);
-  console.log("Database successfully connected");
+  // await connect(URI);
+  // console.log("Database successfully connected");
   app.listen(PORT, async () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
