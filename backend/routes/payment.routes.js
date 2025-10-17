@@ -1,5 +1,5 @@
 import express from "express";
-import { handlePayHereNotification, verifyPaymentStatus, createPayment, getUserPayments, getAllPayments } from "../controllers/payment.controller.js";
+import { handlePayHereNotification, verifyPaymentStatus, createPayment, getUserPayments, getAllPayments, generatePayHereHash } from "../controllers/payment.controller.js";
 import { authenticate, authorize } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
@@ -18,5 +18,8 @@ router.get('/user', authenticate, getUserPayments);
 
 // Get all payments (admin only)
 router.get('/all', authenticate, authorize(['admin']), getAllPayments);
+
+// Generate PayHere hash (no auth required for hash generation)
+router.post('/generate-hash', generatePayHereHash);
 
 export default router;

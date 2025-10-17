@@ -3,6 +3,7 @@ import { AxiosInstance } from '../services/Axios.service';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/Auth.context.jsx';
+import { payHereConfig, submitPayHerePayment } from '../utils/payhere.util.js';
 
 const UserDashboard = () => {
     const navigate = useNavigate();
@@ -109,39 +110,60 @@ const UserDashboard = () => {
             });
 
             const order_id = paymentResponse.data.order_id;
+            const amount = "5000.00";
+            const currency = "LKR";
+            const items = "Premium User Upgrade";
 
-            // PayHere payment integration
-            const paymentData = {
-                merchant_id: "1220001", // Replace with your PayHere merchant ID
-                return_url: window.location.origin + "/dashboard/user",
-                cancel_url: window.location.origin + "/dashboard/user",
-                notify_url: window.location.origin + "/api/payment/notify",
+            // Get PayHere configuration
+            const configResponse = await AxiosInstance.get('/api/payhere/config');
+            const config = configResponse.data;
+
+            // Generate hash
+            const hashResponse = await AxiosInstance.post('/api/payhere/generate-hash', {
+                merchant_id: config.merchant_id,
+                order_id: order_id,
+                amount: amount,
+                currency: currency
+            });
+
+            const hash = hashResponse.data.hash;
+
+            // Create and submit HTML form to PayHere
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = config.payhere_url;
+            form.style.display = 'none';
+
+            // Add all required fields
+            const formData = {
+                merchant_id: config.merchant_id,
+                return_url: config.return_url,
+                cancel_url: config.cancel_url,
+                notify_url: config.notify_url,
+                order_id: order_id,
+                items: items,
+                currency: currency,
+                amount: amount,
                 first_name: user?.name?.fname || "User",
                 last_name: user?.name?.lname || "",
                 email: user?.universityMail || "",
                 phone: user?.contact?.phone || "",
                 address: user?.address?.street || "",
                 city: user?.address?.city || "",
-                country: user?.address?.country || "",
-                order_id: order_id,
-                items: "Premium User Upgrade",
-                currency: "LKR",
-                amount: "5000.00" // LKR 5000 for premium upgrade
+                country: user?.address?.country || "Sri Lanka",
+                hash: hash
             };
 
-            // Create PayHere payment form
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = 'https://sandbox.payhere.lk/pay/checkout'; // Use sandbox for testing
-
-            Object.keys(paymentData).forEach(key => {
+            // Create hidden inputs for all form data
+            Object.keys(formData).forEach(key => {
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = key;
-                input.value = paymentData[key];
+                input.value = formData[key];
                 form.appendChild(input);
             });
 
+            // Submit form
             document.body.appendChild(form);
             form.submit();
             document.body.removeChild(form);

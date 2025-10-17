@@ -1,10 +1,25 @@
 import { HTTP_STATUS } from "../const/http-status.const.js";
 import User from "../model/user.model.js";
 import Payment from "../model/payment.model.js";
+import { getPayHereMerchantSecret } from "../config/payhere.config.js";
+import crypto from "crypto";
 
 export const handlePayHereNotification = async (req, res) => {
   try {
-    const { order_id, payment_id, status, amount } = req.body;
+    const { order_id, payment_id, status, amount, hash } = req.body;
+    
+    // Verify PayHere signature for security
+    const merchantSecret = getPayHereMerchantSecret();
+    const expectedHash = crypto
+      .createHash('md5')
+      .update(merchantSecret + order_id + payment_id + status + amount)
+      .digest('hex')
+      .toUpperCase();
+    
+    if (hash !== expectedHash) {
+      console.error('PayHere signature verification failed');
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Invalid signature" });
+    }
     
     // Find the payment record
     const payment = await Payment.findOne({ order_id });
@@ -118,6 +133,33 @@ export const getAllPayments = async (req, res) => {
     res.status(HTTP_STATUS.OK).json(payments);
   } catch (err) {
     console.error("Get all payments error:", err);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
+  }
+};
+
+export const generatePayHereHash = async (req, res) => {
+  try {
+    const { merchantId, orderId, amount, currency } = req.body;
+    
+    if (!merchantId || !orderId || !amount || !currency) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Missing required fields" });
+    }
+    
+  const merchantSecret = String(getPayHereMerchantSecret()).trim();
+  // PayHere expects: MD5( merchant_id + order_id + amount + currency + MD5(merchant_secret) )
+  const innerSecretHash = crypto.createHash('md5').update(merchantSecret).digest('hex');
+  const dataToHash = String(merchantId).trim() + String(orderId).trim() + String(amount).trim() + String(currency).trim() + innerSecretHash;
+
+    // Generate MD5 hash
+    const hash = crypto
+      .createHash('md5')
+      .update(dataToHash)
+      .digest('hex')
+      .toUpperCase();
+    
+    res.status(HTTP_STATUS.OK).json({ hash });
+  } catch (err) {
+    console.error("Generate hash error:", err);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ message: "Internal server error" });
   }
 };
