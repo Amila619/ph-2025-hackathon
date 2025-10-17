@@ -1,15 +1,16 @@
 import { Outlet } from "react-router-dom";
-//import NavBar from "../components/NavBar";
 import Footer from "../components/Footer"
-import Breadcrumbs from "../components/BreadCrumb";
 import AnimatedNavbar from "../components/AnimatedNavBar";
+import BreadCrumbs from "../components/BreadCrumbs";
+import FloatingChatbot from "../components/ChatBot";
 
 export default function RootLayout() {
     return (
         <>
             <AnimatedNavbar />
-            <Breadcrumbs />
+            <BreadCrumbs />
             <Outlet />
+            <FloatingChatbot />
             <Footer />
         </>
     )
