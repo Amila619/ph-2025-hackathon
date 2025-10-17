@@ -2,7 +2,8 @@ import jwt from "jsonwebtoken";
 
 const toJwtPayload = (user) => ({
     sub: user._id?.toString?.() || user.id || user.sub,
-    email: user.universityMail || user.email
+    email: user.universityMail || user.email,
+    role: user.role || "user"
 });
 
 export const generateAccessToken = (user) => {

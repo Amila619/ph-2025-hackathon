@@ -1,13 +1,13 @@
 import express, { response } from "express";
 import cors from "cors";
-// import { connectDB } from "./src/config/db.js";
 import dotenv from "dotenv";
-// import {RedisClient} from "./src/services/redis.service.js";
 import { sanitizeMongoInput } from "express-v5-mongo-sanitize";
 import {xss} from "express-xss-sanitizer";
 import { connectDB } from "./config/db.js";
 import { RedisClient } from "./service/redis.service.js";
 import authRoutes from "./routes/auth.routes.js";
+import { blockBlacklistedForNonAdmins } from "./middleware/auth.middleware.js";
+import { verifyAccessToken } from "./util/JWTtoken.util.js";
 
 dotenv.config();
 
@@ -21,6 +21,21 @@ app.use(cors({
 }));
 app.use(sanitizeMongoInput);
 app.use(xss());
+
+// Attach user if token present so blacklist can read role
+app.use((req, _res, next) => {
+    const authHeader = req.headers["authorization"] || req.headers["Authorization"];
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        try {
+            const token = authHeader.substring("Bearer ".length);
+            req.user = verifyAccessToken(token);
+        } catch (_) {}
+    }
+    next();
+});
+
+// Block admin-only URLs for non-admin users
+app.use(blockBlacklistedForNonAdmins);
 
 connectDB();
 RedisClient.connect().catch(err => {
