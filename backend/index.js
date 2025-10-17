@@ -6,6 +6,10 @@ import {xss} from "express-xss-sanitizer";
 import { connectDB } from "./config/db.js";
 import { RedisClient } from "./service/redis.service.js";
 import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import productRoutes from "./routes/product.routes.js";
+import serviceRoutes from "./routes/service.routes.js";
+import donationRoutes from "./routes/donation.routes.js";
 import { blockBlacklistedForNonAdmins } from "./middleware/auth.middleware.js";
 import { verifyAccessToken } from "./util/JWTtoken.util.js";
 
@@ -49,5 +53,9 @@ app.get("/health", (req, res) => {
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/services", serviceRoutes);
+app.use("/api/donations", donationRoutes);
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
