@@ -1,4 +1,6 @@
 // import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Navigate } from 'react-router-dom'
+import SignUpintro from "./signUpintro.jsx"
+import HomePage from "./components/homepage.jsx"
 
 function App() {
 
@@ -26,7 +28,6 @@ function App() {
 
   return (
     <div>
-
       {/* <RouterProvider router={router} /> */}
     </div>
   )
