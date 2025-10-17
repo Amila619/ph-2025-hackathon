@@ -6,11 +6,11 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative w-full h-[80vh] overflow-hidden flex items-center justify-center">
+    <div className="relative w-full h-screen overflow-hidden flex items-center justify-center">
       {/* Background Video */}
       <video
         className="absolute top-0 left-0 w-full h-full object-cover z-0"
-        src="assets/videos/sample.mp4" // place video inside public/videos
+        src="assets/videos/sample.mp4" 
         autoPlay
         muted
         loop
@@ -23,10 +23,10 @@ export default function HomePage() {
       {/* Centered Text */}
       <div className="relative z-20 text-center text-white p-8">
         <h1 className="text-5xl font-bold mb-4 drop-shadow-[0_6px_18px_rgba(0,0,0,0.6)]">
-          Build, Connect, Deliver
+        Prosperous Nation, Brighter Tomorrow
         </h1>
         <p className="text-lg mb-6 drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-          Hela Savi — connecting services and resources for the nation
+        Building a smarter way for the nation to collaborate, where ideas, talent, and resources come together to create real impact.
         </p>
         <button
           onClick={handleClick}
