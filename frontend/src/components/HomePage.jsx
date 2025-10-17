@@ -6,6 +6,7 @@ export default function HomePage() {
   };
 
   return (
+    <>
     <div className="relative w-full h-[80vh] overflow-hidden flex items-center justify-center">
       {/* Background Video */}
       <video
@@ -36,5 +37,7 @@ export default function HomePage() {
         </button>
       </div>
     </div>
+    <SignUpintro />
+    </>
   );
 }

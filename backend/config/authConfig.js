@@ -12,4 +12,4 @@ const config = {
   issuerBaseURL: process.env.ISSUER_BASE_URL
 };
 
-export default auth(config);
+export default auth(config);
