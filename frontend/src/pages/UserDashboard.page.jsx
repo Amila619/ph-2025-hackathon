@@ -1,6 +1,6 @@
 import { Button, Card, List, Typography, Tabs, Input, Form, InputNumber, Space, Modal, message, Badge, Tag, Select } from 'antd';
 import { AxiosInstance } from '../services/Axios.service';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/Auth.context.jsx';
 import { initializePayHerePayment, loadPayHereScript } from '../utils/payhere.util.js';
@@ -29,11 +29,63 @@ const UserDashboard = () => {
     const [newMessage, setNewMessage] = useState('');
     const [loadingChats, setLoadingChats] = useState(false);
     const [sendingMessage, setSendingMessage] = useState(false);
+    const [cartItemsWithDetails, setCartItemsWithDetails] = useState([]);
     
     // Category and Status management
     const [productCategories, setProductCategories] = useState(['Electronics', 'Books', 'Clothing', 'Food', 'Furniture', 'Sports', 'Other']);
     const [serviceCategories, setServiceCategories] = useState(['Tutoring', 'Repair', 'Transportation', 'Cleaning', 'Event Services', 'Other']);
     const [statusOptions] = useState(['active', 'inactive']);
+
+    // Enrich cart items with full product/service details
+    const enrichCartItems = useCallback(async (cartItems) => {
+        if (!cartItems || cartItems.length === 0) {
+            setCartItemsWithDetails([]);
+            return;
+        }
+
+        try {
+            const enrichedItems = await Promise.all(
+                cartItems.map(async (item) => {
+                    try {
+                        let details = null;
+                        if (item.kind === 'product') {
+                            // Find product in already loaded products
+                            details = products.find(p => p._id === item.refId);
+                            if (!details) {
+                                // If not found, try to fetch it
+                                const res = await AxiosInstance.get(`/products/${item.refId}`);
+                                details = res.data;
+                            }
+                        } else if (item.kind === 'service') {
+                            // Find service in already loaded services
+                            details = services.find(s => s._id === item.refId);
+                            if (!details) {
+                                // If not found, try to fetch it
+                                const res = await AxiosInstance.get(`/services/${item.refId}`);
+                                details = res.data;
+                            }
+                        }
+                        
+                        return {
+                            ...item,
+                            details: details || null
+                        };
+                    } catch (error) {
+                        console.error(`Error fetching ${item.kind} details:`, error);
+                        return {
+                            ...item,
+                            details: null
+                        };
+                    }
+                })
+            );
+            
+            setCartItemsWithDetails(enrichedItems);
+        } catch (error) {
+            console.error('Error enriching cart items:', error);
+            setCartItemsWithDetails([]);
+        }
+    }, [products, services]);
 
     const onLogout = async () => {
         try {
@@ -90,19 +142,26 @@ const UserDashboard = () => {
                     AxiosInstance.get('/payment/user'),
                     AxiosInstance.get('/chats')
                 ]);
-                setProducts(pRes.data || []);
-                setServices(sRes.data || []);
-                setCart(cRes.data || { items: [] });
+                const productsData = pRes.data || [];
+                const servicesData = sRes.data || [];
+                const cartData = cRes.data || { items: [] };
+                
+                setProducts(productsData);
+                setServices(servicesData);
+                setCart(cartData);
                 setPayments(payRes.data || []);
                 setChats(chatsRes.data?.data || []);
                 
                 // Load user's own products and services
                 if (me) {
-                    const userProducts = (pRes.data || []).filter(p => p.seller_id === me._id);
-                    const userServices = (sRes.data || []).filter(s => s.seller_id === me._id);
+                    const userProducts = productsData.filter(p => p.seller_id === me._id);
+                    const userServices = servicesData.filter(s => s.seller_id === me._id);
                     setUserProducts(userProducts);
                     setUserServices(userServices);
                 }
+                
+                // Enrich cart items with full details
+                await enrichCartItems(cartData.items || []);
             } catch (err) {
                 // Only redirect on auth errors, not timeouts
                 if (err.response?.status === 401 || err.response?.status === 403) {
@@ -112,7 +171,14 @@ const UserDashboard = () => {
                 }
             }
         })();
-    }, [isLoggedIn, role, navigate, refreshMe, user]);
+    }, [isLoggedIn, role, navigate, refreshMe, user, enrichCartItems]);
+
+    // Re-enrich cart items when cart, products, or services change
+    useEffect(() => {
+        if (cart?.items) {
+            enrichCartItems(cart.items);
+        }
+    }, [cart, enrichCartItems]);
 
     const applyWelfare = async (values) => {
         const docs = (values.documents || []).split(',').map(s => s.trim()).filter(Boolean);
@@ -918,13 +984,98 @@ const UserDashboard = () => {
                         children: (
                           <Card title="My Cart">
                             <List
-                              dataSource={cart?.items || []}
-                              renderItem={(i) => (
+                              dataSource={cartItemsWithDetails}
+                              renderItem={(item) => (
                                 <List.Item>
-                                  {i.kind} - {i.refId} x {i.qty}
+                                  <div className="flex justify-between items-center w-full">
+                                    <div style={{ flex: 1 }}>
+                                      {item.details ? (
+                                        <>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <Typography.Text strong>
+                                              {item.kind === 'product' ? item.details.name : item.details.s_category}
+                                            </Typography.Text>
+                                            <Tag color={item.kind === 'product' ? 'blue' : 'green'}>
+                                              {item.kind === 'product' ? 'Product' : 'Service'}
+                                            </Tag>
+                                          </div>
+                                          {item.kind === 'product' && (
+                                            <div style={{ marginTop: '4px' }}>
+                                              <Typography.Text type="secondary">
+                                                Category: {item.details.category} | Price: LKR {item.details.price}
+                                              </Typography.Text>
+                                            </div>
+                                          )}
+                                          {item.kind === 'service' && (
+                                            <div style={{ marginTop: '4px' }}>
+                                              <Typography.Text type="secondary">
+                                                Status: {item.details.status}
+                                              </Typography.Text>
+                                            </div>
+                                          )}
+                                          {(item.details.p_description || item.details.s_description) && (
+                                            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                              {item.details.p_description || item.details.s_description}
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <div>
+                                          <Typography.Text type="secondary">
+                                            {item.kind} - ID: {item.refId}
+                                          </Typography.Text>
+                                          <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                                            (Details not available)
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div style={{ textAlign: 'right', minWidth: '100px' }}>
+                                      <Typography.Text strong style={{ fontSize: '16px' }}>
+                                        Qty: {item.qty}
+                                      </Typography.Text>
+                                      {item.details && item.kind === 'product' && (
+                                        <div style={{ marginTop: '4px' }}>
+                                          <Typography.Text type="secondary" style={{ fontSize: '14px' }}>
+                                            Total: LKR {(item.details.price * item.qty).toFixed(2)}
+                                          </Typography.Text>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 </List.Item>
                               )}
                             />
+                            {cartItemsWithDetails.length === 0 && (
+                              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                <Typography.Text type="secondary">Your cart is empty</Typography.Text>
+                              </div>
+                            )}
+                            {cartItemsWithDetails.length > 0 && (
+                              <div style={{ marginTop: '16px', padding: '16px', background: '#f5f5f5', borderRadius: '8px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Typography.Text strong style={{ fontSize: '16px' }}>
+                                    Total Items:
+                                  </Typography.Text>
+                                  <Typography.Text strong style={{ fontSize: '16px' }}>
+                                    {cartItemsWithDetails.reduce((sum, item) => sum + item.qty, 0)}
+                                  </Typography.Text>
+                                </div>
+                                {cartItemsWithDetails.some(item => item.kind === 'product' && item.details) && (
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                                    <Typography.Text strong style={{ fontSize: '18px', color: '#1890ff' }}>
+                                      Products Total:
+                                    </Typography.Text>
+                                    <Typography.Text strong style={{ fontSize: '18px', color: '#1890ff' }}>
+                                      LKR {cartItemsWithDetails
+                                        .filter(item => item.kind === 'product' && item.details)
+                                        .reduce((sum, item) => sum + (item.details.price * item.qty), 0)
+                                        .toFixed(2)}
+                                    </Typography.Text>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </Card>
                         )
                     },
