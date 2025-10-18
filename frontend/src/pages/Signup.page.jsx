@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Button, Card, Form, Input, Typography, Checkbox, message } from "antd";
+import { Button, Card, Form, Input, Typography, Checkbox } from "antd";
+import { toast } from 'react-toastify';
 import { 
   UserOutlined, 
-  LockOutlined, 
   SmileOutlined,
   SafetyOutlined,
   ThunderboltOutlined,
@@ -24,8 +24,7 @@ const SignUp = () => {
         },
         body: JSON.stringify({
           name: values.name,
-          email: values.email,
-          password: values.password
+          email: values.email
         }),
         credentials: 'include',
       });
@@ -33,14 +32,21 @@ const SignUp = () => {
       const data = await response.json();
 
       if (response.ok) {
-        message.success('Registration successful! Please log in.');
-        window.location.href = '/login';
+        toast.success('🎉 Registration successful! Please check your email for OTP.', {
+          position: "top-right",
+          autoClose: 4000,
+        });
+        // Store user data for OTP verification
+        localStorage.setItem('pendingUser', JSON.stringify(data.user));
+        setTimeout(() => {
+          window.location.href = '/verify-otp';
+        }, 1500);
       } else {
-        message.error(data.message || 'Registration failed. Please try again.');
+        toast.error(data.message || 'Registration failed. Please try again.');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      message.error('An error occurred. Please try again.');
+      toast.error('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -140,45 +146,11 @@ const SignUp = () => {
                 />
               </Form.Item>
 
-              <Form.Item
-                name="password"
-                label="Password"
-                rules={[
-                  { required: true, message: 'Please input your password!' },
-                  { min: 6, message: 'Password must be minimum 6 characters.' }
-                ]}
-                hasFeedback
-              >
-                <Input.Password
-                  prefix={<LockOutlined className="text-gray-400" />}
-                  placeholder="Enter your password"
-                  className="rounded-lg"
-                />
-              </Form.Item>
-
-              <Form.Item
-                name="confirm"
-                label="Confirm Password"
-                dependencies={['password']}
-                hasFeedback
-                rules={[
-                  { required: true, message: 'Please confirm your password!' },
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('password') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject('The two passwords do not match!');
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined className="text-gray-400" />}
-                  placeholder="Confirm your password"
-                  className="rounded-lg"
-                />
-              </Form.Item>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-blue-800">
+                  📧 We'll send a verification code to your email
+                </p>
+              </div>
 
               <Form.Item name="agreement" valuePropName="checked" rules={[
                   {
