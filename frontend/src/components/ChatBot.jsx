@@ -31,6 +31,9 @@ const FloatingChatbot = () => {
         content: response.message || "Sorry, I didn’t get that.",
       };
 
+      console.log(response);
+      
+
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.log(error);
