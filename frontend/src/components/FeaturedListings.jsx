@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Briefcase, Star, MapPin, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/Auth.context';
-import { message } from 'antd';
+import { toast } from 'react-toastify';
 import axios from 'axios';
 import { AxiosInstance } from '../services/Axios.service';
 
@@ -119,7 +119,7 @@ const FeaturedListings = () => {
     console.log('User:', user);
     
     if (!isLoggedIn) {
-      message.warning('Please login to add items to cart');
+      toast.warning('Please login to add items to cart');
       navigate('/login');
       return;
     }
@@ -129,13 +129,13 @@ const FeaturedListings = () => {
     console.log('Token exists:', !!token);
     if (!token) {
       console.error('No access token found in localStorage');
-      message.error('Your session has expired. Please login again.');
+      toast.error('Your session has expired. Please login again.');
       navigate('/login');
       return;
     }
 
     if (item.itemType !== 'product') {
-      message.info('Only products can be added to cart');
+      toast.info('Only products can be added to cart');
       return;
     }
 
@@ -145,15 +145,22 @@ const FeaturedListings = () => {
         refId: item.id,
         qty: 1
       });
-      message.success(`${item.title || 'Product'} added to cart successfully! 🛒`);
+      toast.success(`${item.title || 'Product'} added to cart successfully! 🛒`, {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } catch (error) {
       console.error('Error adding to cart:', error);
       if (error.response?.status === 401) {
-        message.error('Your session has expired. Please login again.');
+        toast.error('Your session has expired. Please login again.');
         localStorage.removeItem('accessToken');
         navigate('/login');
       } else {
-        message.error(error.response?.data?.message || 'Failed to add to cart. Please try again.');
+        toast.error(error.response?.data?.message || 'Failed to add to cart. Please try again.');
       }
     }
   };

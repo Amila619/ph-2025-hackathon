@@ -1,5 +1,4 @@
 import axios from "axios";
-import { toast } from "react-toastify";
 import { sanitizeObject } from "../controllers/Sanitize.controller";
 
 export const AxiosInstance = axios.create({
@@ -27,20 +26,15 @@ AxiosInstance.interceptors.request.use(function (config) {
 
   return config;
 }, function (error) {
-  toast.error("Something went wrong!");
   console.error(error);
   return Promise.reject(error);
 });
 
 AxiosInstance.interceptors.response.use(function onFulfilled(response) {
-
-//   console.log("Response:", response.data);
-
-  toast.success(response.data?.message || "Success!");
+  // Don't show automatic toasts - let components handle their own notifications
   return response;
-
 }, function onRejected(error) {
-  toast.error(error.response?.data?.message || "Something went wrong!");
+  // Only log errors - let components handle their own error notifications
   console.error(error);
   return Promise.reject(error);
 });
