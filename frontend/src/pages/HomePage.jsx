@@ -5,6 +5,7 @@ import MarketplaceTabs from '../components/MarketplaceTabs';
 import FeaturedListings from '../components/FeaturedListings';
 import HowItWorks from '../components/HowLtWorks';
 import WhyChooseUs from '../components/WhyChooseUs';
+import Contact from './Contact';
 import { FloatButton } from 'antd';
 
 export default function HomePage() {
