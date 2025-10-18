@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       setLoading(true);
-      const res = await AxiosInstance.get('/api/users/me');
+      const res = await AxiosInstance.get('/users/me');
       setUser(res.data);
       setRole(res.data?.role || 'user');
       setIsLoggedIn(true);
