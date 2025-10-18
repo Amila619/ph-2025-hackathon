@@ -1,5 +1,5 @@
 // import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Navigate } from 'react-router-import SignUpintro from "./components/signUpintro"
-import SignUpintro from "./components/signUpintro"
+import SignUpintro from "./components/SignUpintro.jsx"
 import HomePage from "./components/homepage.jsx"
 import Dashboard from './pages/AdminDashboard.page.jsx';
 import Login from './pages/Login.page.jsx';
@@ -14,7 +14,7 @@ function App() {
   const router = createBrowserRouter(
     createRoutesFromElements(
       <Route path="/" element={<RootLayout />}>
-        <Route path="/" element={<Donation />} />
+        <Route path="/donation" element={<Donation />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/signup" element={<SignUp />} />

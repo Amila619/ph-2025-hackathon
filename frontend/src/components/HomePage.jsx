@@ -1,4 +1,5 @@
 import React from "react";
+import SignUpintro from "./SignUpintro";
 
 export default function HomePage() {
   const handleClick = () => {
