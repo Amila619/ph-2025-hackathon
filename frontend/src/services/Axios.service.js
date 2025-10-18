@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { sanitizeObject } from "../controllers/Sanitize.controller";
 
 export const AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL,
+  baseURL: `${import.meta.env.VITE_BACKEND_URL}/api`,
   timeout: 5000,
   headers: { "Content-Type": "application/json" },
   withCredentials: true,

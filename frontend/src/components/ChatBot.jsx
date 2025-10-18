@@ -30,6 +30,7 @@ const FloatingChatbot = () => {
         role: "assistant",
         content: response.message || "Sorry, I didn’t get that.",
       };
+
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.log(error);

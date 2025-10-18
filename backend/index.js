@@ -17,6 +17,7 @@ import paymentRoutes from "./routes/payment.routes.js";
 import payhereRoutes from "./routes/payhere.js";
 import { blockBlacklistedForNonAdmins } from "./middleware/auth.middleware.js";
 import { verifyAccessToken } from "./util/JWTtoken.util.js";
+import chatRoutes from "./routes/chatbot.routes.js";
 
 dotenv.config();
 
@@ -67,5 +68,6 @@ app.use("/api/purchase", purchaseRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/payhere", payhereRoutes);
+app.use("/api/", chatRoutes);
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
