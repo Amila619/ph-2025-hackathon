@@ -9,6 +9,7 @@ import RootLayout from "./layouts/RootLayout.jsx";
 import SignUp from "./pages/Signup.page.jsx";
 import ProductGallery from "./pages/ProductGallery.page.jsx";
 import AboutUs from "./pages/AboutUs.jsx";
+import News from "./pages/News.jsx";
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/product-gallery" element={<ProductGallery />} />
+        <Route path="/News" element={<News />} />
       </Route>
     )
   )
