@@ -38,25 +38,25 @@ export const generatePayHereHash = async (merchantId, orderId, amount, currency)
 // PayHere JavaScript API utility functions
 export const waitForPayHere = () => {
     return new Promise((resolve, reject) => {
-        const maxAttempts = 30; // 30 seconds max
-        let attempts = 0;
+        // const maxAttempts = 30; // 30 seconds max
+        // let attempts = 0;
         
-        const checkPayHere = () => {
-            attempts++;
+        // const checkPayHere = () => {
+        //     attempts++;
             
-            if (typeof window.payhere !== 'undefined') {
-                console.log('PayHere library loaded successfully');
-                resolve(window.payhere);
-            } else if (attempts >= maxAttempts) {
-                console.error('PayHere library failed to load after 30 seconds');
-                reject(new Error('PayHere library failed to load'));
-            } else {
-                console.log(`Waiting for PayHere library... (${attempts}/${maxAttempts})`);
-                setTimeout(checkPayHere, 1000);
-            }
-        };
+        //     if (typeof window.payhere !== 'undefined') {
+        //         console.log('PayHere library loaded successfully');
+        //         resolve(window.payhere);
+        //     } else if (attempts >= maxAttempts) {
+        //         console.error('PayHere library failed to load after 30 seconds');
+        //         reject(new Error('PayHere library failed to load'));
+        //     } else {
+        //         console.log(`Waiting for PayHere library... (${attempts}/${maxAttempts})`);
+        //         setTimeout(checkPayHere, 1000);
+        //     }
+        // };
         
-        checkPayHere();
+        // checkPayHere();
     });
 };
 

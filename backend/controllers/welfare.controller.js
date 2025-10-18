@@ -6,14 +6,25 @@ export const applyWelfare = async (req, res) => {
   try {
     const { documents = [], note } = req.body;
     const userId = req.user?.sub;
-    if (!userId) return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: "Unauthorized" });
+    
+    console.log('Welfare application request:', { userId, documents, note });
+    
+    if (!userId) {
+      console.error('Welfare application: No user ID found');
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: "Unauthorized" });
+    }
 
     const existing = await WelfareApplication.findOne({ user_id: userId, status: { $in: ['pending', 'approved'] } });
-    if (existing) return res.status(HTTP_STATUS.CONFLICT).json({ message: "Existing application pending or already approved" });
+    if (existing) {
+      console.log('Welfare application: User already has pending/approved application');
+      return res.status(HTTP_STATUS.CONFLICT).json({ message: "You already have a pending or approved welfare application" });
+    }
 
     const app = await WelfareApplication.create({ user_id: userId, documents, note });
+    console.log('Welfare application created:', app);
     res.status(HTTP_STATUS.CREATED).json(app);
   } catch (err) {
+    console.error('Welfare application error:', err);
     res.status(HTTP_STATUS.BAD_REQUEST).json({ message: err.message });
   }
 };

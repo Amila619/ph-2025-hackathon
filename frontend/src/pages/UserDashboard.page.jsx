@@ -181,8 +181,26 @@ const UserDashboard = () => {
     }, [cart, enrichCartItems]);
 
     const applyWelfare = async (values) => {
-        const docs = (values.documents || []).split(',').map(s => s.trim()).filter(Boolean);
-        await AxiosInstance.post('/welfare/apply', { documents: docs, note: values.note });
+        try {
+            // Split documents by comma and trim, filter out empty strings
+            const docs = values.documents 
+                ? values.documents.split(',').map(s => s.trim()).filter(Boolean)
+                : [];
+            
+            console.log('Submitting welfare application with documents:', docs);
+            
+            const response = await AxiosInstance.post('/welfare/apply', { 
+                documents: docs, 
+                note: values.note || '' 
+            });
+            toast.success('Welfare application submitted successfully!', { autoClose: 3000 });
+            console.log('Welfare application response:', response.data);
+        } catch (error) {
+            console.error('Welfare application error:', error);
+            console.error('Error details:', error.response?.data);
+            const errorMessage = error.response?.data?.message || 'Failed to submit welfare application';
+            toast.error(errorMessage, { autoClose: 5000 });
+        }
     };
 
     const handleEditProduct = (product) => {
