@@ -18,13 +18,11 @@ const AnimatedNavbar = () => {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <div className="h-10 w-10 bg-gradient-to-br from-red-800 to-red-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-md">
                 <img
                 src="/assets/images/logo.png"  // path to your logo
                 alt="Helasavi logo"
                 className="h-8 w-15"    // adjust size as needed
               />
-              </div>
             </div>
             <div className="hidden md:ml-10 md:flex md:space-x-8">
               <a href="#" className="text-gray-700 hover:text-red-800 px-3 py-2 text-sm font-medium transition-colors">{t.home}</a>
