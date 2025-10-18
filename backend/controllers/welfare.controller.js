@@ -42,21 +42,36 @@ export const reviewWelfare = async (req, res) => {
   try {
     const { id } = req.params;
     const { action } = req.body; // 'approve' | 'reject'
+    
+    console.log('Review welfare request:', { id, action, userId: req.user?.sub });
+    
     const app = await WelfareApplication.findById(id);
-    if (!app) return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Application not found" });
+    if (!app) {
+      console.error('Welfare application not found:', id);
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: "Application not found" });
+    }
+
+    console.log('Found welfare application:', app);
 
     if (action === 'approve') {
       app.status = 'approved';
       await app.save();
+      console.log('Application approved, updating user welfare status...');
       await User.findByIdAndUpdate(app.user_id, { isWelfareReciever: true });
+      console.log('User welfare status updated successfully');
     } else if (action === 'reject') {
       app.status = 'rejected';
       await app.save();
+      console.log('Application rejected');
     } else {
+      console.error('Invalid action:', action);
       return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Invalid action" });
     }
+    
+    console.log('Review completed successfully:', app);
     res.status(HTTP_STATUS.OK).json(app);
   } catch (err) {
+    console.error('Review welfare error:', err);
     res.status(HTTP_STATUS.BAD_REQUEST).json({ message: err.message });
   }
 };

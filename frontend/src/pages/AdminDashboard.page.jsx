@@ -289,36 +289,77 @@ const AdminDashboard = () => {
   };
 
   // WELFARE MANAGEMENT
-  const handleApproveWelfare = (applicationId) => {
+  const handleApproveWelfare = async (applicationId) => {
+    if (!applicationId) {
+      toast.error('Invalid application ID', { autoClose: 3000 });
+      return;
+    }
+
+    console.log('Approving welfare application:', applicationId);
+
     Modal.confirm({
       title: 'Approve Welfare Application',
       content: 'Are you sure you want to approve this welfare application?',
-      onOk: async () => {
-        try {
-          await AxiosInstance.post(`/welfare/${applicationId}/review`, { action: 'approve' });
-          toast.success('Welfare application approved!', { autoClose: 3000 });
-          const welfareRes = await AxiosInstance.get('/welfare');
-          setWelfareApplications(welfareRes.data || []);
-        } catch (error) {
-          toast.error(error.response?.data?.message || 'Failed to approve', { autoClose: 5000 });
-        }
+      okText: 'Approve',
+      cancelText: 'Cancel',
+      onOk: () => {
+        return new Promise(async (resolve, reject) => {
+          try {
+            console.log('Sending approval request...');
+            const response = await AxiosInstance.post(`/welfare/${applicationId}/review`, { action: 'approve' });
+            console.log('Approval response:', response);
+            toast.success('Welfare application approved!', { autoClose: 3000 });
+            
+            // Reload welfare applications
+            const welfareRes = await AxiosInstance.get('/welfare');
+            setWelfareApplications(welfareRes.data || []);
+            console.log('Welfare applications reloaded');
+            resolve();
+          } catch (error) {
+            console.error('Error approving welfare:', error);
+            console.error('Error details:', error.response);
+            toast.error(error.response?.data?.message || 'Failed to approve application', { autoClose: 5000 });
+            reject(error);
+          }
+        });
       }
     });
   };
 
-  const handleRejectWelfare = (applicationId) => {
+  const handleRejectWelfare = async (applicationId) => {
+    if (!applicationId) {
+      toast.error('Invalid application ID', { autoClose: 3000 });
+      return;
+    }
+
+    console.log('Rejecting welfare application:', applicationId);
+
     Modal.confirm({
       title: 'Reject Welfare Application',
       content: 'Are you sure you want to reject this welfare application?',
-      onOk: async () => {
-        try {
-          await AxiosInstance.post(`/welfare/${applicationId}/review`, { action: 'reject' });
-          toast.success('Welfare application rejected!', { autoClose: 3000 });
-          const welfareRes = await AxiosInstance.get('/welfare');
-          setWelfareApplications(welfareRes.data || []);
-        } catch (error) {
-          toast.error(error.response?.data?.message || 'Failed to reject', { autoClose: 5000 });
-        }
+      okText: 'Reject',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: () => {
+        return new Promise(async (resolve, reject) => {
+          try {
+            console.log('Sending rejection request...');
+            const response = await AxiosInstance.post(`/welfare/${applicationId}/review`, { action: 'reject' });
+            console.log('Rejection response:', response);
+            toast.success('Welfare application rejected!', { autoClose: 3000 });
+            
+            // Reload welfare applications
+            const welfareRes = await AxiosInstance.get('/welfare');
+            setWelfareApplications(welfareRes.data || []);
+            console.log('Welfare applications reloaded');
+            resolve();
+          } catch (error) {
+            console.error('Error rejecting welfare:', error);
+            console.error('Error details:', error.response);
+            toast.error(error.response?.data?.message || 'Failed to reject application', { autoClose: 5000 });
+            reject(error);
+          }
+        });
       }
     });
   };
