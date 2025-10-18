@@ -8,7 +8,14 @@ const VerifyOtpPage = () => {
   const location = useLocation();
   const { refreshMe, setIsLoggedIn, setRole, setUser } = useAuth();
 
-  const { user } = location.state || {};
+  // Check for user from navigation state or localStorage (registration flow)
+  let { user } = location.state || {};
+  if (!user) {
+    const pendingUser = localStorage.getItem('pendingUser');
+    if (pendingUser) {
+      user = JSON.parse(pendingUser);
+    }
+  }
 
   const onChange = async (otpValue) => {
     if (!user) {
@@ -23,6 +30,9 @@ const VerifyOtpPage = () => {
       });
 
       if (response.data?.message === "Login successful") {
+        // Clear pending user from localStorage if it exists
+        localStorage.removeItem('pendingUser');
+        
         // Save token to localStorage
         localStorage.setItem("accessToken", response.data.accessToken);
 

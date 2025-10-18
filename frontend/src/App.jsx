@@ -1,4 +1,6 @@
 import { createBrowserRouter, createRoutesFromElements, Route, RouterProvider, Navigate } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import HomePage from "./pages/HomePage.jsx";
 import AdminDashboard from "./pages/AdminDashboard.page.jsx";
 import Login from "./pages/Login.page.jsx";
@@ -9,6 +11,7 @@ import ProductGallery from "./pages/ProductGallery.page.jsx";
 import AboutUs from "./pages/AboutUs.jsx";
 import VerifyOtpPage from "./pages/VerifyOtp.page.jsx";
 import UserDashboard from "./pages/UserDashboard.page.jsx";
+import Contact from "./pages/Contact.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { AuthProvider } from "./context/Auth.context.jsx";
 import News from "./pages/News.jsx";
@@ -34,6 +37,7 @@ const router = createBrowserRouter(
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard/admin" element={<AdminDashboard />} />
         <Route path="/dashboard/user" element={<UserDashboard />} />
+        <Route path="/contact" element={<Contact />} />
       </Route>
     </Route>
   )
@@ -43,6 +47,18 @@ function App() {
   return (
     <AuthProvider>
       <RouterProvider router={router} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </AuthProvider>
   );
 }

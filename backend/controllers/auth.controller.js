@@ -11,9 +11,29 @@ import User from "../model/user.model.js";
 
 export const register = async (req, res) => {
   try {
-    const { universityMail } = req.body;
-    const user = await registerUser(universityMail);
-    res.status(HTTP_STATUS.CREATED).json({ message: RESPONSE_MESSAGE.USER_CREATED_SUCCESS, user });
+    const { email, name } = req.body;
+    
+    // Validate required fields
+    if (!email || !name) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ 
+        message: "Email and name are required" 
+      });
+    }
+
+    const user = await registerUser(email, name);
+    
+    // Generate OTP for email verification
+    const otp = Crypto.randomBytes(4).toString('hex');
+    Redis_addExpireValue(`otp:${user._id}`, otp, 300); // OTP valid for 5 minutes
+
+    // Send OTP via email
+    sendEmail(user.universityMail, "Verify Your Registration", 
+      `Welcome to ResLink! Your verification code is: ${otp}. This code will expire in 5 minutes.`);
+
+    res.status(HTTP_STATUS.CREATED).json({ 
+      message: "Registration successful! Please check your email for OTP verification.", 
+      user 
+    });
 
   } catch (err) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({ message: err.message });
