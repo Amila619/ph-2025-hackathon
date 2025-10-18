@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Layout, 
   Menu, 
@@ -33,25 +34,47 @@ import {
 } from "@ant-design/icons";
 
 //import { getLoginStatus } from "../services/api";
-import { useAuth } from "../hooks/AuthContext";
+import { useAuth } from "../context/Auth.context";
+import { AxiosInstance } from "../services/Axios.service";
 
 const { Header, Sider, Content } = Layout;
 
 const AdminDashboard = () => {
-  const { setIsAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { user, isLoggedIn, role } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKey, setSelectedKey] = useState('1');
   const [userData, setUserData] = useState([]);
   const [products, setProducts] = useState([]);
   const [jobs, setJobs] = useState([]);
 
+  const handleLogout = async () => {
+    try {
+      await AxiosInstance.post('/auth/logout');
+    } catch (_) { /* noop */ }
+    localStorage.removeItem('accessToken');
+    navigate('/login', { replace: true });
+  };
+
+  const handleMenuClick = ({ key }) => {
+    if (key === '3') {
+      // Logout option
+      handleLogout();
+    } else {
+      setSelectedKey(key);
+    }
+  };
+
   useEffect(() => {
-    getLoginStatus()
-      .then((data) => {
-        setIsAuthenticated(data);
-        localStorage.setItem("auth", data);
-      })
-      .catch((err) => console.error(err));
+    // Check if user is logged in and is admin
+    if (!isLoggedIn) {
+      navigate('/login', { replace: true });
+      return;
+    }
+    if (role !== 'admin') {
+      navigate('/dashboard/user', { replace: true });
+      return;
+    }
 
     // Enhanced mock data
     setUserData([
@@ -388,7 +411,7 @@ const AdminDashboard = () => {
           mode="inline"
           selectedKeys={[selectedKey]}
           items={menuItems}
-          onClick={({ key }) => setSelectedKey(key)}
+          onClick={handleMenuClick}
           className="mt-4 bg-transparent"
         />
       </Sider>
@@ -410,10 +433,10 @@ const AdminDashboard = () => {
             <Badge count={5} color="#f56a00">
               <BellOutlined className="text-2xl text-gray-600 cursor-pointer hover:text-blue-500 transition" />
             </Badge>
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+            <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} placement="bottomRight">
               <Space className="cursor-pointer hover:opacity-80 transition">
                 <Avatar size="large" icon={<UserOutlined />} className="bg-indigo-600" />
-                <span className="text-gray-700 font-medium hidden md:inline">Admin User</span>
+                <span className="text-gray-700 font-medium hidden md:inline">{user?.universityMail || 'Admin User'}</span>
               </Space>
             </Dropdown>
           </div>

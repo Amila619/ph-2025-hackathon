@@ -11,7 +11,7 @@ export const registerUser = async (universityMail) => {
     await newUser.save();
     return newUser;
   } catch (error) {
-    throw new Error(RESPONSE_MESSAGE.USER_NOT_FOUND);
+    throw error;
   }
 };
 
@@ -22,6 +22,6 @@ export const loginUser = async (universityMail) => {
     if (!user) throw new Error(RESPONSE_MESSAGE.USER_NOT_FOUND);
     return user;
   } catch (error) {
-    throw new Error(RESPONSE_MESSAGE.USER_NOT_FOUND);
+    throw error;
   }
 };
