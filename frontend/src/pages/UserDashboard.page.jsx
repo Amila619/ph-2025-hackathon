@@ -2,12 +2,12 @@ import { Button, Card, List, Typography, Tabs, Input, Form, InputNumber, Space, 
 import { AxiosInstance } from '../services/Axios.service';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-// import { initializePayHerePayment, loadPayHereScript } from '../utils/payhere.util.js';
-import { useAuth } from '../hooks/AuthContext.js';
+import { useAuth } from '../context/Auth.context.jsx';
+import { initializePayHerePayment, loadPayHereScript } from '../utils/payhere.util.js';
 
 const UserDashboard = () => {
     const navigate = useNavigate();
-    const { isLoggedIn, role, refreshMe, user } = useAuth();
+    const { isLoggedIn, role, refreshMe, user, setIsLoggedIn, setRole, setUser } = useAuth();
     const [products, setProducts] = useState([]);
     const [services, setServices] = useState([]);
     const [cart, setCart] = useState(null);
@@ -19,10 +19,19 @@ const UserDashboard = () => {
 
     const onLogout = async () => {
         try {
-            await AxiosInstance.post('/api/auth/logout');
+            await AxiosInstance.post('/auth/logout');
         } catch (_) { /* noop */ }
+        
+        // Clear all auth-related data
         localStorage.removeItem('accessToken');
-        navigate('/', { replace: true });
+        sessionStorage.removeItem('welcomed');
+        
+        // Reset auth context state
+        setIsLoggedIn(false);
+        setRole('user');
+        setUser(null);
+        
+        navigate('/login', { replace: true });
     };
 
     useEffect(() => {

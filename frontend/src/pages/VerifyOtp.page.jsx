@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router";
 const VerifyOtpPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { refreshMe } = useAuth();
+  const { refreshMe, setIsLoggedIn, setRole, setUser } = useAuth();
 
   const { user } = location.state || {};
 
@@ -23,13 +23,17 @@ const VerifyOtpPage = () => {
       });
 
       if (response.data?.message === "Login successful") {
+        // Save token to localStorage
         localStorage.setItem("accessToken", response.data.accessToken);
 
-        // Get role from the response data
+        // Get role and user from the response data
         const userRole = response.data?.user?.role || "user";
+        const userData = response.data?.user;
         
-        // Refresh user data in context
-        await refreshMe();
+        // Immediately update auth context to prevent PublicRoute from redirecting
+        setIsLoggedIn(true);
+        setRole(userRole);
+        setUser(userData);
 
         // Navigate based on role
         if (userRole === "admin") {
@@ -37,6 +41,9 @@ const VerifyOtpPage = () => {
         } else {
           navigate("/dashboard/user", { replace: true });
         }
+
+        // Refresh user data in background (for full user info)
+        refreshMe();
       }
     } catch (err) {
       // Error handling is done by Axios interceptor

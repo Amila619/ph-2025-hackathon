@@ -1,17 +1,65 @@
 import React, { useState } from 'react';
-import { Menu } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // ✅ import navigation hook
+import { Menu, LayoutDashboard, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/Auth.context';
+import { AxiosInstance } from '../services/Axios.service';
 
 const translations = {
-  en: { home: 'Home', services: 'Services', products: 'Products', materials: 'Raw Materials', why: 'Why Us', login: 'Log In', signup: 'Sign Up' },
-  si: { home: 'මුල් පිටුව', services: 'සේවා', products: 'නිෂ්පාදන', materials: 'අමුද්‍රව්‍ය', why: 'ඇයි අපි', login: 'ඇතුල් වන්න', signup: 'ලියාපදිංචිය' }
+  en: { 
+    home: 'Home', 
+    services: 'Services', 
+    products: 'Products', 
+    materials: 'Raw Materials', 
+    why: 'Why Us', 
+    login: 'Log In', 
+    signup: 'Sign Up',
+    dashboard: 'Dashboard',
+    logout: 'Logout'
+  },
+  si: { 
+    home: 'මුල් පිටුව', 
+    services: 'සේවා', 
+    products: 'නිෂ්පාදන', 
+    materials: 'අමුද්‍රව්‍ය', 
+    why: 'ඇයි අපි', 
+    login: 'ඇතුල් වන්න', 
+    signup: 'ලියාපදිංචිය',
+    dashboard: 'උපකරණ පුවරුව',
+    logout: 'ඉවත් වන්න'
+  }
 };
 
 const AnimatedNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [language, setLanguage] = useState('en');
   const t = translations[language];
-  const navigate = useNavigate(); // ✅ initialize navigation
+  const navigate = useNavigate();
+  const { isLoggedIn, role, user, setIsLoggedIn, setRole, setUser } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await AxiosInstance.post('/auth/logout');
+    } catch (_) { /* noop */ }
+    
+    // Clear all auth-related data
+    localStorage.removeItem('accessToken');
+    sessionStorage.removeItem('welcomed');
+    
+    // Reset auth context state
+    setIsLoggedIn(false);
+    setRole('user');
+    setUser(null);
+    
+    navigate('/login', { replace: true });
+  };
+
+  const handleDashboardClick = () => {
+    if (role === 'admin') {
+      navigate('/dashboard/admin');
+    } else {
+      navigate('/dashboard/user');
+    }
+  };
 
   return (
     <nav className="bg-white/95 shadow-sm sticky top-0 z-50">
@@ -41,21 +89,45 @@ const AnimatedNavbar = () => {
               {language === 'en' ? 'සිං' : 'EN'}
             </button>
 
-            {/* ✅ Navigation to login */}
-            <button
-              onClick={() => navigate('/login')}
-              className="text-gray-700 hover:text-red-800 px-4 py-2 text-sm font-medium transition-colors text-nowrap"
-            >
-              {t.login}
-            </button>
+            {isLoggedIn ? (
+              <>
+                {/* Dashboard Button for Logged-in Users */}
+                <button
+                  onClick={handleDashboardClick}
+                  className="flex items-center gap-2 text-gray-700 hover:text-red-800 px-4 py-2 text-sm font-medium transition-colors text-nowrap"
+                >
+                  <LayoutDashboard size={18} />
+                  {t.dashboard}
+                </button>
 
-            {/* ✅ Navigation to register */}
-            <button
-              onClick={() => navigate('/signup')}
-              className="bg-red-800 hover:bg-red-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg text-nowrap"
-            >
-              {t.signup}
-            </button>
+                {/* Logout Button */}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 bg-red-800 hover:bg-red-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg text-nowrap"
+                >
+                  <LogOut size={18} />
+                  {t.logout}
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Login Button for Non-logged-in Users */}
+                <button
+                  onClick={() => navigate('/login')}
+                  className="text-gray-700 hover:text-red-800 px-4 py-2 text-sm font-medium transition-colors text-nowrap"
+                >
+                  {t.login}
+                </button>
+
+                {/* Sign Up Button */}
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="bg-red-800 hover:bg-red-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg text-nowrap"
+                >
+                  {t.signup}
+                </button>
+              </>
+            )}
           </div>
 
           <button onClick={() => setIsOpen(!isOpen)} className="md:hidden p-2">
@@ -72,19 +144,57 @@ const AnimatedNavbar = () => {
             <a href="../#products" className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-red-800 hover:bg-gray-50 rounded-md">{t.products}</a>
             <a href="../#why" className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-red-800 hover:bg-gray-50 rounded-md">{t.why}</a>
 
-            {/* ✅ Mobile buttons also navigate */}
-            <button
-              onClick={() => navigate('/login')}
-              className="w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-md"
-            >
-              {t.login}
-            </button>
-            <button
-              onClick={() => navigate('/signup')}
-              className="w-full bg-red-800 text-white px-3 py-2 rounded-lg text-base font-medium mt-2"
-            >
-              {t.signup}
-            </button>
+            {isLoggedIn ? (
+              <>
+                {/* Dashboard Button - Mobile */}
+                <button
+                  onClick={() => {
+                    handleDashboardClick();
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 text-left px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                >
+                  <LayoutDashboard size={18} />
+                  {t.dashboard}
+                </button>
+
+                {/* Logout Button - Mobile */}
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 bg-red-800 text-white px-3 py-2 rounded-lg text-base font-medium mt-2"
+                >
+                  <LogOut size={18} />
+                  {t.logout}
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Login Button - Mobile */}
+                <button
+                  onClick={() => {
+                    navigate('/login');
+                    setIsOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                >
+                  {t.login}
+                </button>
+
+                {/* Sign Up Button - Mobile */}
+                <button
+                  onClick={() => {
+                    navigate('/signup');
+                    setIsOpen(false);
+                  }}
+                  className="w-full bg-red-800 text-white px-3 py-2 rounded-lg text-base font-medium mt-2"
+                >
+                  {t.signup}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -41,7 +41,7 @@ const { Header, Sider, Content } = Layout;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { user, isLoggedIn, role } = useAuth();
+  const { user, isLoggedIn, role, setIsLoggedIn, setRole, setUser } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [selectedKey, setSelectedKey] = useState('1');
   const [userData, setUserData] = useState([]);
@@ -52,7 +52,16 @@ const AdminDashboard = () => {
     try {
       await AxiosInstance.post('/auth/logout');
     } catch (_) { /* noop */ }
+    
+    // Clear all auth-related data
     localStorage.removeItem('accessToken');
+    sessionStorage.removeItem('welcomed');
+    
+    // Reset auth context state
+    setIsLoggedIn(false);
+    setRole('user');
+    setUser(null);
+    
     navigate('/login', { replace: true });
   };
 
@@ -163,7 +172,7 @@ const AdminDashboard = () => {
         deadline: "2025-01-25"
       },
     ]);
-  }, [setIsAuthenticated]);
+  }, [isLoggedIn, role, navigate]);
 
   const userColumns = [
     { 

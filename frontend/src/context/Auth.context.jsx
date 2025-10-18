@@ -72,6 +72,7 @@ export const AuthProvider = ({ children }) => {
       setInitialized(true);
       refreshMe();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoggedIn, initialized]);
 
   const value = useMemo(
