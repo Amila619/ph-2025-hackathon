@@ -1,10 +1,17 @@
 import Service from "../model/service.model.js";
 import { HTTP_STATUS } from "../const/http-status.const.js";
+import { randomBytes } from "crypto";
 
 export const createService = async (req, res) => {
   try {
     const sellerId = req.user?.sub;
-    const body = { ...req.body, seller_id: req.body?.seller_id || sellerId };
+    // Generate unique service ID
+    const s_id = `S-${Date.now()}-${randomBytes(4).toString('hex')}`;
+    const body = { 
+      ...req.body, 
+      s_id,
+      seller_id: req.body?.seller_id || sellerId 
+    };
     const service = await Service.create(body);
     res.status(HTTP_STATUS.CREATED).json(service);
   } catch (err) {

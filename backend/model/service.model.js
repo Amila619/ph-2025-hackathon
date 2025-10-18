@@ -15,8 +15,11 @@ const serviceSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "inactive"],
-    default: "inactive"
+    enum: {
+      values: ["active", "inactive"],
+      message: "Status must be either 'active' or 'inactive'. '{VALUE}' is not a valid status."
+    },
+    default: "active"
   },
   s_description: {
     type: String,

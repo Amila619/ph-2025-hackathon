@@ -1,9 +1,10 @@
-import { Button, Card, List, Typography, Tabs, Input, Form, InputNumber, Space, Modal, message, Badge, Tag } from 'antd';
+import { Button, Card, List, Typography, Tabs, Input, Form, InputNumber, Space, Modal, message, Badge, Tag, Select } from 'antd';
 import { AxiosInstance } from '../services/Axios.service';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/Auth.context.jsx';
 import { initializePayHerePayment, loadPayHereScript } from '../utils/payhere.util.js';
+import { toast } from 'react-toastify';
 
 const UserDashboard = () => {
     const navigate = useNavigate();
@@ -20,12 +21,19 @@ const UserDashboard = () => {
     const [editServiceModal, setEditServiceModal] = useState({ visible: false, service: null });
     const [productForm] = Form.useForm();
     const [serviceForm] = Form.useForm();
+    const [createProductForm] = Form.useForm();
+    const [createServiceForm] = Form.useForm();
     const [chats, setChats] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loadingChats, setLoadingChats] = useState(false);
     const [sendingMessage, setSendingMessage] = useState(false);
+    
+    // Category and Status management
+    const [productCategories, setProductCategories] = useState(['Electronics', 'Books', 'Clothing', 'Food', 'Furniture', 'Sports', 'Other']);
+    const [serviceCategories, setServiceCategories] = useState(['Tutoring', 'Repair', 'Transportation', 'Cleaning', 'Event Services', 'Other']);
+    const [statusOptions] = useState(['active', 'inactive']);
 
     const onLogout = async () => {
         try {
@@ -117,6 +125,7 @@ const UserDashboard = () => {
             name: product.name,
             price: product.price,
             category: product.category,
+            status: product.status || 'active',
             p_description: product.p_description
         });
     };
@@ -131,22 +140,46 @@ const UserDashboard = () => {
     };
 
     const handleDeleteProduct = (product) => {
+        if (!product || !product._id) {
+            toast.error('Cannot delete: Product ID is missing');
+            return;
+        }
+        
         Modal.confirm({
             title: 'Delete Product',
             content: `Are you sure you want to delete "${product.name}"?`,
             okText: 'Delete',
             okType: 'danger',
-            onOk: () => deleteProduct(product._id)
+            cancelText: 'Cancel',
+            onOk: async () => {
+                try {
+                    await deleteProduct(product._id);
+                } catch (error) {
+                    console.error('Error in handleDeleteProduct:', error);
+                }
+            }
         });
     };
 
     const handleDeleteService = (service) => {
+        if (!service || !service._id) {
+            toast.error('Cannot delete: Service ID is missing');
+            return;
+        }
+        
         Modal.confirm({
             title: 'Delete Service',
             content: `Are you sure you want to delete "${service.s_category}"?`,
             okText: 'Delete',
             okType: 'danger',
-            onOk: () => deleteService(service._id)
+            cancelText: 'Cancel',
+            onOk: async () => {
+                try {
+                    await deleteService(service._id);
+                } catch (error) {
+                    console.error('Error in handleDeleteService:', error);
+                }
+            }
         });
     };
 
@@ -243,9 +276,20 @@ const UserDashboard = () => {
                 const userProds = allProducts.filter(p => p.seller_id === user._id);
                 setUserProducts(userProds);
             }
-            message.success('Product created successfully!');
+            
+            // Clear form fields
+            createProductForm.resetFields();
+            
+            // Show success toast
+            toast.success('Product created successfully!', {
+                position: 'top-right',
+                autoClose: 3000
+            });
         } catch (error) {
-            message.error('Failed to create product: ' + (error.response?.data?.message || error.message));
+            toast.error('Failed to create product: ' + (error.response?.data?.message || error.message), {
+                position: 'top-right',
+                autoClose: 5000
+            });
         }
     };
 
@@ -261,9 +305,20 @@ const UserDashboard = () => {
                 const userServs = allServices.filter(s => s.seller_id === user._id);
                 setUserServices(userServs);
             }
-            message.success('Service created successfully!');
+            
+            // Clear form fields
+            createServiceForm.resetFields();
+            
+            // Show success toast
+            toast.success('Service created successfully!', {
+                position: 'top-right',
+                autoClose: 3000
+            });
         } catch (error) {
-            message.error('Failed to create service: ' + (error.response?.data?.message || error.message));
+            toast.error('Failed to create service: ' + (error.response?.data?.message || error.message), {
+                position: 'top-right',
+                autoClose: 5000
+            });
         }
     };
 
@@ -278,15 +333,24 @@ const UserDashboard = () => {
                 const userProds = allProducts.filter(p => p.seller_id === user._id);
                 setUserProducts(userProds);
             }
-            message.success('Product updated successfully!');
+            
+            toast.success('Product updated successfully!', {
+                position: 'top-right',
+                autoClose: 3000
+            });
         } catch (error) {
-            message.error('Failed to update product: ' + (error.response?.data?.message || error.message));
+            toast.error('Failed to update product: ' + (error.response?.data?.message || error.message), {
+                position: 'top-right',
+                autoClose: 5000
+            });
         }
     };
 
     const deleteProduct = async (id) => {
+        console.log('Deleting product with ID:', id);
         try {
             await AxiosInstance.delete(`/products/${id}`);
+            console.log('Product deleted successfully, refreshing list...');
             const pRes = await AxiosInstance.get('/products');
             const allProducts = pRes.data || [];
             setProducts(allProducts);
@@ -295,9 +359,17 @@ const UserDashboard = () => {
                 const userProds = allProducts.filter(p => p.seller_id === user._id);
                 setUserProducts(userProds);
             }
-            message.success('Product deleted successfully!');
+            
+            toast.success('Product deleted successfully!', {
+                position: 'top-right',
+                autoClose: 3000
+            });
         } catch (error) {
-            message.error('Failed to delete product: ' + (error.response?.data?.message || error.message));
+            console.error('Error deleting product:', error);
+            toast.error('Failed to delete product: ' + (error.response?.data?.message || error.message), {
+                position: 'top-right',
+                autoClose: 5000
+            });
         }
     };
 
@@ -312,15 +384,24 @@ const UserDashboard = () => {
                 const userServs = allServices.filter(s => s.seller_id === user._id);
                 setUserServices(userServs);
             }
-            message.success('Service updated successfully!');
+            
+            toast.success('Service updated successfully!', {
+                position: 'top-right',
+                autoClose: 3000
+            });
         } catch (error) {
-            message.error('Failed to update service: ' + (error.response?.data?.message || error.message));
+            toast.error('Failed to update service: ' + (error.response?.data?.message || error.message), {
+                position: 'top-right',
+                autoClose: 5000
+            });
         }
     };
 
     const deleteService = async (id) => {
+        console.log('Deleting service with ID:', id);
         try {
             await AxiosInstance.delete(`/services/${id}`);
+            console.log('Service deleted successfully, refreshing list...');
             const sRes = await AxiosInstance.get('/services');
             const allServices = sRes.data || [];
             setServices(allServices);
@@ -329,9 +410,17 @@ const UserDashboard = () => {
                 const userServs = allServices.filter(s => s.seller_id === user._id);
                 setUserServices(userServs);
             }
-            message.success('Service deleted successfully!');
+            
+            toast.success('Service deleted successfully!', {
+                position: 'top-right',
+                autoClose: 3000
+            });
         } catch (error) {
-            message.error('Failed to delete service: ' + (error.response?.data?.message || error.message));
+            console.error('Error deleting service:', error);
+            toast.error('Failed to delete service: ' + (error.response?.data?.message || error.message), {
+                position: 'top-right',
+                autoClose: 5000
+            });
         }
     };
 
@@ -560,55 +649,171 @@ const UserDashboard = () => {
                                 </Card>
                                 
                                 <Card title="Create Product" style={{ marginBottom: 16 }}>
-                                    <Form layout="inline" onFinish={createProduct}>
-                                        <Form.Item name="p_id" rules={[{ required: true }]}>
-                                            <Input placeholder="Product ID" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item name="name" rules={[{ required: true }]}>
-                                            <Input placeholder="Name" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item name="price" rules={[{ required: true }]}> 
-                                            <InputNumber placeholder="Price" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item name="category" rules={[{ required: true }]}>
-                                            <Input placeholder="Category" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item name="p_description">
-                                            <Input placeholder="Description" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item>
+                                    <Form form={createProductForm} layout="vertical" onFinish={createProduct}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                                            <Form.Item 
+                                                name="name" 
+                                                label="Product Name"
+                                                rules={[{ required: true, message: 'Product name is required' }]}
+                                            >
+                                                <Input placeholder="Enter product name" disabled={!canPostMore()} />
+                                            </Form.Item>
+                                            <Form.Item 
+                                                name="price" 
+                                                label="Price (LKR)"
+                                                rules={[{ required: true, message: 'Price is required' }]}
+                                            > 
+                                                <InputNumber 
+                                                    placeholder="Enter price" 
+                                                    disabled={!canPostMore()} 
+                                                    style={{ width: '100%' }}
+                                                    min={0}
+                                                />
+                                            </Form.Item>
+                                            <Form.Item 
+                                                name="category" 
+                                                label="Category"
+                                                rules={[{ required: true, message: 'Category is required' }]}
+                                            >
+                                                <Select 
+                                                    placeholder="Select or add category" 
+                                                    disabled={!canPostMore()}
+                                                    dropdownRender={(menu) => (
+                                                        <>
+                                                            {menu}
+                                                            <div style={{ padding: '8px', borderTop: '1px solid #f0f0f0' }}>
+                                                                <Input
+                                                                    placeholder="Type new category and press Enter"
+                                                                    onPressEnter={(e) => {
+                                                                        const newCategory = e.target.value.trim();
+                                                                        if (newCategory && !productCategories.includes(newCategory)) {
+                                                                            setProductCategories([...productCategories, newCategory]);
+                                                                            toast.success(`Added category: ${newCategory}`);
+                                                                        }
+                                                                        e.target.value = '';
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                >
+                                                    {productCategories.map(cat => (
+                                                        <Select.Option key={cat} value={cat}>{cat}</Select.Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                            <Form.Item 
+                                                name="status" 
+                                                label="Status"
+                                                initialValue="active"
+                                            >
+                                                <Select 
+                                                    placeholder="Select status" 
+                                                    disabled={!canPostMore()}
+                                                >
+                                                    {statusOptions.map(status => (
+                                                        <Select.Option key={status} value={status}>
+                                                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                        </Select.Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                            <Form.Item 
+                                                name="p_description" 
+                                                label="Description"
+                                                style={{ gridColumn: '1 / -1' }}
+                                            >
+                                                <Input.TextArea 
+                                                    placeholder="Enter product description (optional)" 
+                                                    disabled={!canPostMore()} 
+                                                    rows={2}
+                                                />
+                                            </Form.Item>
+                                        </div>
+                                        <Form.Item style={{ marginTop: '8px' }}>
                                             <Button 
                                                 type="primary" 
                                                 htmlType="submit" 
                                                 disabled={!canPostMore()}
+                                                block
                                             >
-                                                {canPostMore() ? 'Create' : 'Limit Reached'}
+                                                {canPostMore() ? 'Create Product' : 'Posting Limit Reached'}
                                             </Button>
                                         </Form.Item>
                                     </Form>
                                 </Card>
                                 
                                 <Card title="Create Service" style={{ marginBottom: 16 }}>
-                                    <Form layout="inline" onFinish={createService}>
-                                        <Form.Item name="s_id" rules={[{ required: true }]}>
-                                            <Input placeholder="Service ID" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item name="s_category" rules={[{ required: true }]}>
-                                            <Input placeholder="Category" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item name="status">
-                                            <Input placeholder="Status (active/inactive)" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item name="s_description">
-                                            <Input placeholder="Description" disabled={!canPostMore()} />
-                                        </Form.Item>
-                                        <Form.Item>
+                                    <Form form={createServiceForm} layout="vertical" onFinish={createService}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                                            <Form.Item 
+                                                name="s_category" 
+                                                label="Service Category"
+                                                rules={[{ required: true, message: 'Category is required' }]}
+                                            >
+                                                <Select 
+                                                    placeholder="Select or add category" 
+                                                    disabled={!canPostMore()}
+                                                    dropdownRender={(menu) => (
+                                                        <>
+                                                            {menu}
+                                                            <div style={{ padding: '8px', borderTop: '1px solid #f0f0f0' }}>
+                                                                <Input
+                                                                    placeholder="Type new category and press Enter"
+                                                                    onPressEnter={(e) => {
+                                                                        const newCategory = e.target.value.trim();
+                                                                        if (newCategory && !serviceCategories.includes(newCategory)) {
+                                                                            setServiceCategories([...serviceCategories, newCategory]);
+                                                                            toast.success(`Added category: ${newCategory}`);
+                                                                        }
+                                                                        e.target.value = '';
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                >
+                                                    {serviceCategories.map(cat => (
+                                                        <Select.Option key={cat} value={cat}>{cat}</Select.Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                            <Form.Item 
+                                                name="status" 
+                                                label="Status"
+                                                initialValue="active"
+                                            >
+                                                <Select 
+                                                    placeholder="Select status" 
+                                                    disabled={!canPostMore()}
+                                                >
+                                                    {statusOptions.map(status => (
+                                                        <Select.Option key={status} value={status}>
+                                                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                        </Select.Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                            <Form.Item 
+                                                name="s_description" 
+                                                label="Description"
+                                                style={{ gridColumn: '1 / -1' }}
+                                            >
+                                                <Input.TextArea 
+                                                    placeholder="Enter service description (optional)" 
+                                                    disabled={!canPostMore()} 
+                                                    rows={2}
+                                                />
+                                            </Form.Item>
+                                        </div>
+                                        <Form.Item style={{ marginTop: '8px' }}>
                                             <Button 
                                                 type="primary" 
                                                 htmlType="submit" 
                                                 disabled={!canPostMore()}
+                                                block
                                             >
-                                                {canPostMore() ? 'Create' : 'Limit Reached'}
+                                                {canPostMore() ? 'Create Service' : 'Posting Limit Reached'}
                                             </Button>
                                         </Form.Item>
                                     </Form>
@@ -1047,9 +1252,45 @@ const UserDashboard = () => {
                     <Form.Item 
                         name="category" 
                         label="Category" 
-                        rules={[{ required: true, message: 'Please enter category' }]}
+                        rules={[{ required: true, message: 'Please select category' }]}
                     >
-                        <Input placeholder="Category" />
+                        <Select 
+                            placeholder="Select Category"
+                            dropdownRender={(menu) => (
+                                <>
+                                    {menu}
+                                    <div style={{ padding: '8px', borderTop: '1px solid #f0f0f0' }}>
+                                        <Input
+                                            placeholder="Add new category"
+                                            onPressEnter={(e) => {
+                                                const newCategory = e.target.value.trim();
+                                                if (newCategory && !productCategories.includes(newCategory)) {
+                                                    setProductCategories([...productCategories, newCategory]);
+                                                    toast.success(`Added category: ${newCategory}`);
+                                                }
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        >
+                            {productCategories.map(cat => (
+                                <Select.Option key={cat} value={cat}>{cat}</Select.Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                    <Form.Item 
+                        name="status" 
+                        label="Status"
+                    >
+                        <Select placeholder="Select Status">
+                            {statusOptions.map(status => (
+                                <Select.Option key={status} value={status}>
+                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                </Select.Option>
+                            ))}
+                        </Select>
                     </Form.Item>
                     <Form.Item 
                         name="p_description" 
@@ -1091,15 +1332,45 @@ const UserDashboard = () => {
                     <Form.Item 
                         name="s_category" 
                         label="Service Category" 
-                        rules={[{ required: true, message: 'Please enter service category' }]}
+                        rules={[{ required: true, message: 'Please select service category' }]}
                     >
-                        <Input placeholder="Service Category" />
+                        <Select 
+                            placeholder="Select Category"
+                            dropdownRender={(menu) => (
+                                <>
+                                    {menu}
+                                    <div style={{ padding: '8px', borderTop: '1px solid #f0f0f0' }}>
+                                        <Input
+                                            placeholder="Add new category"
+                                            onPressEnter={(e) => {
+                                                const newCategory = e.target.value.trim();
+                                                if (newCategory && !serviceCategories.includes(newCategory)) {
+                                                    setServiceCategories([...serviceCategories, newCategory]);
+                                                    toast.success(`Added category: ${newCategory}`);
+                                                }
+                                                e.target.value = '';
+                                            }}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        >
+                            {serviceCategories.map(cat => (
+                                <Select.Option key={cat} value={cat}>{cat}</Select.Option>
+                            ))}
+                        </Select>
                     </Form.Item>
                     <Form.Item 
                         name="status" 
                         label="Status"
                     >
-                        <Input placeholder="active or inactive" />
+                        <Select placeholder="Select Status">
+                            {statusOptions.map(status => (
+                                <Select.Option key={status} value={status}>
+                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                </Select.Option>
+                            ))}
+                        </Select>
                     </Form.Item>
                     <Form.Item 
                         name="s_description" 

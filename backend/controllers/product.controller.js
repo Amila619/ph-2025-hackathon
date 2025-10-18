@@ -1,10 +1,17 @@
 import Product from "../model/product.model.js";
 import { HTTP_STATUS } from "../const/http-status.const.js";
+import { randomBytes } from "crypto";
 
 export const createProduct = async (req, res) => {
   try {
     const sellerId = req.user?.sub;
-    const body = { ...req.body, seller_id: req.body?.seller_id || sellerId };
+    // Generate unique product ID
+    const p_id = `P-${Date.now()}-${randomBytes(4).toString('hex')}`;
+    const body = { 
+      ...req.body, 
+      p_id,
+      seller_id: req.body?.seller_id || sellerId 
+    };
     const product = await Product.create(body);
     res.status(HTTP_STATUS.CREATED).json(product);
   } catch (err) {

@@ -25,6 +25,14 @@ const productSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  status: {
+    type: String,
+    enum: {
+      values: ["active", "inactive"],
+      message: "Status must be either 'active' or 'inactive'. '{VALUE}' is not a valid status."
+    },
+    default: "active"
+  },
   listed_at: {
     type: Date,
     default: Date.now
