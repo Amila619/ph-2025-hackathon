@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Star, MapPin } from 'lucide-react';
+import { Briefcase, Star, MapPin, ShoppingCart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/Auth.context';
+import { message } from 'antd';
 import axios from 'axios';
+import { AxiosInstance } from '../services/Axios.service';
 
 const FeaturedListings = () => {
   const [activeType, setActiveType] = useState('services');
   const [products, setProducts] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { isLoggedIn, user } = useAuth();
 
   useEffect(() => {
     fetchData();
@@ -34,6 +40,7 @@ const FeaturedListings = () => {
     const listings = {
       services: services.slice(0, 4).map(service => ({
         id: service._id,
+        sellerId: service.seller_id,
         title: service.s_category || 'Service',
         provider: service.s_description ? service.s_description.substring(0, 50) + '...' : 'Professional Service',
         price: 'Contact for pricing',
@@ -41,10 +48,12 @@ const FeaturedListings = () => {
         location: 'Sri Lanka',
         badge: service.status === 'active' ? 'Active' : 'Featured',
         type: 'Service',
+        itemType: 'service',
         description: service.s_description
       })),
       products: products.slice(0, 4).map(product => ({
         id: product._id,
+        sellerId: product.seller_id,
         title: product.name || 'Product',
         provider: product.category || 'Seller',
         price: `Rs ${product.price?.toLocaleString()}`,
@@ -52,6 +61,7 @@ const FeaturedListings = () => {
         location: 'Sri Lanka',
         badge: 'Available',
         type: 'Product',
+        itemType: 'product',
         description: product.p_description
       })),
       materials: products.filter(p => 
@@ -61,6 +71,7 @@ const FeaturedListings = () => {
         p.category?.toLowerCase().includes('alloy')
       ).slice(0, 4).map(product => ({
         id: product._id,
+        sellerId: product.seller_id,
         title: product.name || 'Material',
         provider: product.category || 'Supplier',
         price: `Rs ${product.price?.toLocaleString()}`,
@@ -68,6 +79,7 @@ const FeaturedListings = () => {
         location: 'Sri Lanka',
         badge: 'Verified',
         type: 'Material',
+        itemType: 'product',
         description: product.p_description
       }))
     };
@@ -82,20 +94,93 @@ const FeaturedListings = () => {
 
   const getSampleListings = () => ({
     services: [
-      { title: 'Full Stack Developer', provider: 'Tech Solutions Ltd', price: 'Rs 50,000-100,000', rating: 4.8, location: 'Remote', badge: 'Top Rated', type: 'Service' },
-      { title: 'Logo Design Package', provider: 'Creative Studio', price: 'Rs 10,000-30,000', rating: 4.9, location: 'Colombo', badge: 'Featured', type: 'Service' }
+      { id: 'sample-s1', sellerId: 'sample-seller', title: 'Full Stack Developer', provider: 'Tech Solutions Ltd', price: 'Rs 50,000-100,000', rating: 4.8, location: 'Remote', badge: 'Top Rated', type: 'Service', itemType: 'service' },
+      { id: 'sample-s2', sellerId: 'sample-seller', title: 'Logo Design Package', provider: 'Creative Studio', price: 'Rs 10,000-30,000', rating: 4.9, location: 'Colombo', badge: 'Featured', type: 'Service', itemType: 'service' }
     ],
     products: [
-      { title: 'Industrial LED Lighting (Bulk)', provider: 'Lanka Electronics', price: 'Rs 250,000/100 units', rating: 4.7, location: 'Colombo', badge: 'Verified', type: 'Product' },
-      { title: 'Office Furniture Set', provider: 'Modern Furniture Co', price: 'Rs 500,000/set', rating: 4.6, location: 'Kandy', badge: 'Popular', type: 'Product' }
+      { id: 'sample-p1', sellerId: 'sample-seller', title: 'Industrial LED Lighting (Bulk)', provider: 'Lanka Electronics', price: 'Rs 250,000/100 units', rating: 4.7, location: 'Colombo', badge: 'Verified', type: 'Product', itemType: 'product' },
+      { id: 'sample-p2', sellerId: 'sample-seller', title: 'Office Furniture Set', provider: 'Modern Furniture Co', price: 'Rs 500,000/set', rating: 4.6, location: 'Kandy', badge: 'Popular', type: 'Product', itemType: 'product' }
     ],
     materials: [
-      { title: 'Steel Sheets (Grade 304)', provider: 'Steel Industries Ltd', price: 'Rs 85,000/ton', rating: 4.8, location: 'Galle', badge: 'Verified', type: 'Material' },
-      { title: 'Organic Cotton Fabric', provider: 'Textile Suppliers', price: 'Rs 1,200/meter', rating: 4.9, location: 'Kurunegala', badge: 'Eco-Friendly', type: 'Material' }
+      { id: 'sample-m1', sellerId: 'sample-seller', title: 'Steel Sheets (Grade 304)', provider: 'Steel Industries Ltd', price: 'Rs 85,000/ton', rating: 4.8, location: 'Galle', badge: 'Verified', type: 'Material', itemType: 'product' },
+      { id: 'sample-m2', sellerId: 'sample-seller', title: 'Organic Cotton Fabric', provider: 'Textile Suppliers', price: 'Rs 1,200/meter', rating: 4.9, location: 'Kurunegala', badge: 'Eco-Friendly', type: 'Material', itemType: 'product' }
     ]
   });
 
   const currentListings = formatListings();
+
+  const handleAddToCart = async (item, event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    console.log('Add to cart clicked', { item, isLoggedIn });
+    
+    if (!isLoggedIn) {
+      message.warning('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+
+    if (item.itemType !== 'product') {
+      message.info('Only products can be added to cart');
+      return;
+    }
+
+    try {
+      console.log('Sending cart request:', { kind: 'Product', refId: item.id, qty: 1 });
+      const response = await AxiosInstance.post('/cart/add', {
+        kind: 'Product',
+        refId: item.id,
+        qty: 1
+      });
+      console.log('Cart response:', response);
+      // Success message shown by Axios interceptor
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      // Error message shown by Axios interceptor
+    }
+  };
+
+  const handleContactSeller = (item, event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    console.log('=== CONTACT SELLER CLICKED ===');
+    console.log('Item:', item);
+    console.log('isLoggedIn:', isLoggedIn);
+    console.log('User:', user);
+    
+    if (!isLoggedIn) {
+      console.log('User not logged in, redirecting to login');
+      message.warning('Please login to contact sellers');
+      navigate('/login');
+      return;
+    }
+
+    // Check if user is trying to contact themselves
+    const currentUserId = user?._id || user?.id;
+    if (item.sellerId === currentUserId) {
+      console.log('User trying to contact themselves');
+      message.warning('You cannot contact yourself. This is your own listing!');
+      return;
+    }
+
+    const navigationState = {
+      sellerId: item.sellerId,
+      itemId: item.id,
+      itemType: item.itemType,
+      itemName: item.title
+    };
+    
+    console.log('Navigating to /contact with state:', navigationState);
+    
+    try {
+      navigate('/contact', { state: navigationState });
+      console.log('Navigation called successfully');
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
 
   return (
     <div id="products" className="py-20 bg-gray-50">
@@ -125,7 +210,7 @@ const FeaturedListings = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {currentListings.map((item, idx) => (
-              <div key={item.id || idx} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-shadow cursor-pointer border border-gray-100">
+              <div key={item.id || idx} className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-shadow border border-gray-100">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <div className="inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold mb-2">
@@ -159,9 +244,31 @@ const FeaturedListings = () => {
 
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                   <div className="text-2xl font-bold text-red-800">{item.price}</div>
-                  <button className="px-6 py-2 bg-red-800 text-white rounded-lg font-medium hover:bg-red-700 transition-colors">
-                    Contact →
-                  </button>
+                  <div className="flex gap-2">
+                    {/* Only show Add to Cart for products that aren't the user's own */}
+                    {item.itemType === 'product' && item.sellerId !== (user?._id || user?.id) && (
+                      <button 
+                        onClick={(e) => handleAddToCart(item, e)}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center gap-2"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                        Add to Cart
+                      </button>
+                    )}
+                    {/* Only show Contact Seller button if it's not the user's own listing */}
+                    {item.sellerId !== (user?._id || user?.id) ? (
+                      <button 
+                        onClick={(e) => handleContactSeller(item, e)}
+                        className="px-6 py-2 bg-red-800 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                      >
+                        Contact Seller
+                      </button>
+                    ) : (
+                      <span className="px-6 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium">
+                        Your Listing
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

@@ -9,6 +9,7 @@ import ProductGallery from "./pages/ProductGallery.page.jsx";
 import AboutUs from "./pages/AboutUs.jsx";
 import VerifyOtpPage from "./pages/VerifyOtp.page.jsx";
 import UserDashboard from "./pages/UserDashboard.page.jsx";
+import Contact from "./pages/Contact.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { AuthProvider } from "./context/Auth.context.jsx";
 import News from "./pages/News.jsx";
@@ -34,6 +35,7 @@ const router = createBrowserRouter(
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard/admin" element={<AdminDashboard />} />
         <Route path="/dashboard/user" element={<UserDashboard />} />
+        <Route path="/contact" element={<Contact />} />
       </Route>
     </Route>
   )
