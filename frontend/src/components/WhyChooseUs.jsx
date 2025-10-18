@@ -1,7 +1,9 @@
 import React from 'react';
 import { Shield, Truck, BarChart3, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const WhyChooseUs = () => {
+  const navigate = useNavigate();
   const features = [
     { icon: Shield, title: 'Secure Transactions', desc: 'Escrow protection for all deals' },
     { icon: Truck, title: 'Logistics Support', desc: 'We help coordinate deliveries' },
@@ -9,11 +11,15 @@ const WhyChooseUs = () => {
     { icon: CheckCircle, title: 'Quality Verified', desc: 'All suppliers are vetted' }
   ];
 
+  const handleClick = () => {
+    navigate("/News");
+  };
+
   return (
     <div className="py-20 bg-gradient-to-br from-red-800 to-red-600 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4">Why Choose FreeLanka?</h2>
+          <h2 className="text-4xl font-bold mb-4">Why Choose HelaSavi?</h2>
           <p className="text-xl text-red-100">Your trusted B2B and services marketplace</p>
         </div>
 
@@ -33,8 +39,11 @@ const WhyChooseUs = () => {
         </div>
 
         <div className="text-center mt-16">
-          <button className="bg-white text-red-800 px-10 py-4 rounded-xl text-lg font-bold hover:bg-red-50 transition-all shadow-2xl">
-            Start Trading Now
+          <button
+            onClick={handleClick}
+            className="bg-white text-red-800 px-10 py-4 rounded-xl text-lg font-bold hover:bg-red-50 transition-all shadow-2xl"
+          >
+            News and Updates
           </button>
         </div>
       </div>

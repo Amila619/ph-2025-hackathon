@@ -10,32 +10,35 @@ import AboutUs from "./pages/AboutUs.jsx";
 import VerifyOtpPage from "./pages/VerifyOtp.page.jsx";
 import UserDashboard from "./pages/UserDashboard.page.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-
-// ✅ Import the AuthProvider and useAuth from your unified context
 import { AuthProvider, useAuth } from "./context/Auth.context.jsx";
-
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <Route path="/" element={<RootLayout />}>
-      {/* Public routes */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/donation" element={<Donation />} />
-      <Route path="/about" element={<AboutUs />} />
-      <Route path="/product-gallery" element={<ProductGallery />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/verify-otp" element={<VerifyOtpPage />} />
-
-      {/* Protected routes */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard/admin" element={<AdminDashboard />} />
-        <Route path="/dashboard/user" element={<UserDashboard />} />
-      </Route>
-    </Route>
-  )
-);
+import News from "./pages/News.jsx";
+// import { useAuth } from "./hooks/AuthContext.js";
+import UserDashboard from "./pages/UserDashboard.page.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 function App() {
+
+  const { isAuthenticated } = useAuth();
+
+  const router = createBrowserRouter(
+    createRoutesFromElements(
+      <Route path="/" element={<RootLayout />}>
+        <Route path="/" element={!isAuthenticated ? <HomePage /> : <Navigate to="/dashboard" replace />} />
+        <Route path="/donation" element={<Donation />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path='admin-dashboard' element={<AdminDashboard />} />
+          <Route path='user-dashboard' element={<UserDashboard />} />
+        </Route>
+        {!isAuthenticated && <>
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+        </>}
+        <Route path="/product-gallery" element={<ProductGallery />} />
+        <Route path="/News" element={<News />} />
+      </Route>
+    )
+  )
   return (
     // ✅ Wrap everything inside AuthProvider
     <AuthProvider>
