@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Layout, 
-  Menu, 
   Card, 
   Row, 
   Col, 
@@ -13,51 +12,130 @@ import {
   Statistic,
   Dropdown,
   Space,
-  Button
+  Button,
+  Tabs,
+  List,
+  Typography,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Modal
 } from "antd";
 import {
   DashboardOutlined,
   UserOutlined,
-  ShopOutlined,
-  FileTextOutlined,
-  SettingOutlined,
   BellOutlined,
   LogoutOutlined,
   RiseOutlined,
-  FallOutlined,
-  SearchOutlined,
-  PlusOutlined,
-  ExportOutlined,
-  EyeOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  SafetyOutlined,
+  CrownOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  TeamOutlined,
+  ShopOutlined,
+  ShoppingCartOutlined
 } from "@ant-design/icons";
+import { toast } from 'react-toastify';
 
-//import { getLoginStatus } from "../services/api";
 import { useAuth } from "../context/Auth.context";
 import { AxiosInstance } from "../services/Axios.service";
 
-const { Header, Sider, Content } = Layout;
+const { Header, Content } = Layout;
+const { TextArea } = Input;
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { user, isLoggedIn, role, setIsLoggedIn, setRole, setUser } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
-  const [selectedKey, setSelectedKey] = useState('1');
-  const [userData, setUserData] = useState([]);
+  const { user, isLoggedIn, role, setIsLoggedIn, setRole, setUser, refreshMe } = useAuth();
+  
+  // All data states
+  const [allUsers, setAllUsers] = useState([]);
   const [products, setProducts] = useState([]);
-  const [jobs, setJobs] = useState([]);
+  const [services, setServices] = useState([]);
+  const [welfareApplications, setWelfareApplications] = useState([]);
+  const [cart, setCart] = useState({ items: [] });
+  const [payments, setPayments] = useState([]);
+  const [cartItemsWithDetails, setCartItemsWithDetails] = useState([]);
+  
+  // User features states
+  const [userProducts, setUserProducts] = useState([]);
+  const [userServices, setUserServices] = useState([]);
+  
+  // Modal states
+  const [editProductModal, setEditProductModal] = useState({ visible: false, product: null });
+  const [editServiceModal, setEditServiceModal] = useState({ visible: false, service: null });
+  const [editUserModal, setEditUserModal] = useState({ visible: false, user: null });
+  
+  // Form instances
+  const [productForm] = Form.useForm();
+  const [serviceForm] = Form.useForm();
+  const [createProductForm] = Form.useForm();
+  const [createServiceForm] = Form.useForm();
+  const [editUserForm] = Form.useForm();
+  const [welfareForm] = Form.useForm();
+  
+  // Category and Status management
+  const [productCategories, setProductCategories] = useState(['Electronics', 'Books', 'Clothing', 'Food', 'Furniture', 'Sports', 'Other']);
+  const [serviceCategories, setServiceCategories] = useState(['Tutoring', 'Repair', 'Transportation', 'Cleaning', 'Event Services', 'Other']);
+  const [statusOptions] = useState(['active', 'inactive']);
+
+  // Enrich cart items with full product/service details
+  const enrichCartItems = useCallback(async (cartItems) => {
+    if (!cartItems || cartItems.length === 0) {
+      setCartItemsWithDetails([]);
+      return;
+    }
+
+    try {
+      const enrichedItems = await Promise.all(
+        cartItems.map(async (item) => {
+          try {
+            let details = null;
+            if (item.kind === 'product') {
+              details = products.find(p => p._id === item.refId);
+              if (!details) {
+                const res = await AxiosInstance.get(`/products/${item.refId}`);
+                details = res.data;
+              }
+            } else if (item.kind === 'service') {
+              details = services.find(s => s._id === item.refId);
+              if (!details) {
+                const res = await AxiosInstance.get(`/services/${item.refId}`);
+                details = res.data;
+              }
+            }
+            
+            return {
+              ...item,
+              details: details || null
+            };
+          } catch (error) {
+            console.error(`Error fetching ${item.kind} details:`, error);
+            return {
+              ...item,
+              details: null
+            };
+          }
+        })
+      );
+      
+      setCartItemsWithDetails(enrichedItems);
+    } catch (error) {
+      console.error('Error enriching cart items:', error);
+      setCartItemsWithDetails([]);
+    }
+  }, [products, services]);
 
   const handleLogout = async () => {
     try {
       await AxiosInstance.post('/auth/logout');
     } catch (_) { /* noop */ }
     
-    // Clear all auth-related data
     localStorage.removeItem('accessToken');
     sessionStorage.removeItem('welcomed');
     
-    // Reset auth context state
     setIsLoggedIn(false);
     setRole('user');
     setUser(null);
@@ -65,17 +143,7 @@ const AdminDashboard = () => {
     navigate('/login', { replace: true });
   };
 
-  const handleMenuClick = ({ key }) => {
-    if (key === '3') {
-      // Logout option
-      handleLogout();
-    } else {
-      setSelectedKey(key);
-    }
-  };
-
   useEffect(() => {
-    // Check if user is logged in and is admin
     if (!isLoggedIn) {
       navigate('/login', { replace: true });
       return;
@@ -85,294 +153,457 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Enhanced mock data
-    setUserData([
-      { 
-        key: 1, 
-        name: "John Doe", 
-        role: "Farmer", 
-        location: "Galle",
-        email: "john@example.com",
-        joinDate: "2024-01-15",
-        status: "Active"
-      },
-      { 
-        key: 2, 
-        name: "Acme Factory", 
-        role: "Business", 
-        location: "Colombo",
-        email: "acme@example.com",
-        joinDate: "2024-02-20",
-        status: "Active"
-      },
-      { 
-        key: 3, 
-        name: "Jane Smith", 
-        role: "Worker", 
-        location: "Kandy",
-        email: "jane@example.com",
-        joinDate: "2024-03-10",
-        status: "Inactive"
-      },
-    ]);
+    (async () => {
+      try {
+        // Load data with individual error handling
+        const usersRes = await AxiosInstance.get('/users').catch(err => {
+          console.error('Failed to load users:', err);
+          return { data: [] };
+        });
+        
+        const productsRes = await AxiosInstance.get('/products').catch(err => {
+          console.error('Failed to load products:', err);
+          return { data: [] };
+        });
+        
+        const servicesRes = await AxiosInstance.get('/services').catch(err => {
+          console.error('Failed to load services:', err);
+          return { data: [] };
+        });
+        
+        const cartRes = await AxiosInstance.get('/cart').catch(err => {
+          console.error('Failed to load cart:', err);
+          return { data: { items: [] } };
+        });
+        
+        const welfareRes = await AxiosInstance.get('/welfare').catch(err => {
+          console.error('Failed to load welfare applications:', err);
+          return { data: [] };
+        });
+        
+        const paymentsRes = await AxiosInstance.get('/payment/all').catch(err => {
+          console.error('Failed to load payments:', err);
+          return { data: [] };
+        });
 
-    setProducts([
-      { 
-        key: 1, 
-        name: "Coconut", 
-        price: 120, 
-        farmer: "John Doe", 
-        location: "Galle",
-        stock: 150,
-        category: "Fruits"
-      },
-      { 
-        key: 2, 
-        name: "Vegetables", 
-        price: 80, 
-        farmer: "Mary Jane", 
-        location: "Kandy",
-        stock: 200,
-        category: "Vegetables"
-      },
-      { 
-        key: 3, 
-        name: "Rice", 
-        price: 200, 
-        farmer: "Sam Wilson", 
-        location: "Anuradhapura",
-        stock: 500,
-        category: "Grains"
-      },
-    ]);
+        setAllUsers(usersRes.data || []);
+        setProducts(productsRes.data || []);
+        setServices(servicesRes.data || []);
+        setCart(cartRes.data || { items: [] });
+        setWelfareApplications(welfareRes.data || []);
+        setPayments(paymentsRes.data || []);
 
-    setJobs([
-      { 
-        key: 1, 
-        title: "Transport Coconuts", 
-        worker: "Alex", 
-        status: "Open",
-        payment: "Rs 5000",
-        deadline: "2025-01-20"
-      },
-      { 
-        key: 2, 
-        title: "Harvesting", 
-        worker: "Saman", 
-        status: "Filled",
-        payment: "Rs 3000",
-        deadline: "2025-01-18"
-      },
-      { 
-        key: 3, 
-        title: "Packaging Work", 
-        worker: "Nimal", 
-        status: "Open",
-        payment: "Rs 4000",
-        deadline: "2025-01-25"
-      },
-    ]);
-  }, [isLoggedIn, role, navigate]);
+        if (user?._id) {
+          setUserProducts((productsRes.data || []).filter(p => p.seller_id === user._id));
+          setUserServices((servicesRes.data || []).filter(s => s.seller_id === user._id));
+        }
 
+        await enrichCartItems(cartRes.data?.items || []);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        toast.error('Failed to load some dashboard data. Please refresh.', { autoClose: 5000 });
+      }
+    })();
+  }, [isLoggedIn, role, navigate, user, enrichCartItems]);
+
+  // USER MANAGEMENT
+  const handleMakeAdmin = (userId) => {
+    Modal.confirm({
+      title: 'Make Admin',
+      content: 'Are you sure you want to promote this user to admin?',
+      onOk: async () => {
+        try {
+          await AxiosInstance.put(`/users/${userId}`, { role: 'admin' });
+          toast.success('User promoted to admin!', { autoClose: 3000 });
+          const usersRes = await AxiosInstance.get('/users');
+          setAllUsers(usersRes.data || []);
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to promote user', { autoClose: 5000 });
+        }
+      }
+    });
+  };
+
+  const handleRemoveAdmin = (userId) => {
+    Modal.confirm({
+      title: 'Remove Admin',
+      content: 'Are you sure you want to remove admin privileges from this user?',
+      onOk: async () => {
+        try {
+          await AxiosInstance.put(`/users/${userId}`, { role: 'user' });
+          toast.success('Admin privileges removed!', { autoClose: 3000 });
+          const usersRes = await AxiosInstance.get('/users');
+          setAllUsers(usersRes.data || []);
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to remove admin', { autoClose: 5000 });
+        }
+      }
+    });
+  };
+
+  const handleDeleteUser = (userId) => {
+    Modal.confirm({
+      title: 'Delete User',
+      content: 'Are you sure you want to delete this user? This action cannot be undone.',
+      okText: 'Delete',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await AxiosInstance.delete(`/users/${userId}`);
+          toast.success('User deleted successfully!', { autoClose: 3000 });
+          const usersRes = await AxiosInstance.get('/users');
+          setAllUsers(usersRes.data || []);
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to delete user', { autoClose: 5000 });
+        }
+      }
+    });
+  };
+
+  const handleEditUser = (user) => {
+    setEditUserModal({ visible: true, user });
+    editUserForm.setFieldsValue({
+      universityMail: user.universityMail,
+      role: user.role,
+      isPremium: user.isPremium
+    });
+  };
+
+  const handleUpdateUser = async (values) => {
+    try {
+      await AxiosInstance.put(`/users/${editUserModal.user._id}`, values);
+      toast.success('User updated successfully!', { autoClose: 3000 });
+      setEditUserModal({ visible: false, user: null });
+      editUserForm.resetFields();
+      const usersRes = await AxiosInstance.get('/users');
+      setAllUsers(usersRes.data || []);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update user', { autoClose: 5000 });
+    }
+  };
+
+  // WELFARE MANAGEMENT
+  const handleApproveWelfare = (applicationId) => {
+    Modal.confirm({
+      title: 'Approve Welfare Application',
+      content: 'Are you sure you want to approve this welfare application?',
+      onOk: async () => {
+        try {
+          await AxiosInstance.post(`/welfare/${applicationId}/review`, { action: 'approve' });
+          toast.success('Welfare application approved!', { autoClose: 3000 });
+          const welfareRes = await AxiosInstance.get('/welfare');
+          setWelfareApplications(welfareRes.data || []);
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to approve', { autoClose: 5000 });
+        }
+      }
+    });
+  };
+
+  const handleRejectWelfare = (applicationId) => {
+    Modal.confirm({
+      title: 'Reject Welfare Application',
+      content: 'Are you sure you want to reject this welfare application?',
+      onOk: async () => {
+        try {
+          await AxiosInstance.post(`/welfare/${applicationId}/review`, { action: 'reject' });
+          toast.success('Welfare application rejected!', { autoClose: 3000 });
+          const welfareRes = await AxiosInstance.get('/welfare');
+          setWelfareApplications(welfareRes.data || []);
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to reject', { autoClose: 5000 });
+        }
+      }
+    });
+  };
+
+  const applyWelfare = async (values) => {
+    try {
+      const docs = values.documents 
+        ? values.documents.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+      
+      await AxiosInstance.post('/welfare/apply', { 
+        documents: docs, 
+        note: values.note || '' 
+      });
+      toast.success('Welfare application submitted!', { autoClose: 3000 });
+      welfareForm.resetFields();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to submit', { autoClose: 5000 });
+    }
+  };
+
+  // PRODUCT/SERVICE CRUD
+  const createProduct = async (values) => {
+    try {
+      await AxiosInstance.post('/products', values);
+      toast.success('Product created!', { autoClose: 3000 });
+      createProductForm.resetFields();
+      const productsRes = await AxiosInstance.get('/products');
+      setProducts(productsRes.data || []);
+      if (user?._id) {
+        setUserProducts((productsRes.data || []).filter(p => p.seller_id === user._id));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to create product', { autoClose: 5000 });
+    }
+  };
+
+  const createService = async (values) => {
+    try {
+      await AxiosInstance.post('/services', values);
+      toast.success('Service created!', { autoClose: 3000 });
+      createServiceForm.resetFields();
+      const servicesRes = await AxiosInstance.get('/services');
+      setServices(servicesRes.data || []);
+      if (user?._id) {
+        setUserServices((servicesRes.data || []).filter(s => s.seller_id === user._id));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to create service', { autoClose: 5000 });
+    }
+  };
+
+  const handleEditProduct = (product) => {
+    setEditProductModal({ visible: true, product });
+    productForm.setFieldsValue({
+      name: product.name,
+      price: product.price,
+      category: product.category,
+      status: product.status || 'active',
+      p_description: product.p_description
+    });
+  };
+
+  const handleEditService = (service) => {
+    setEditServiceModal({ visible: true, service });
+    serviceForm.setFieldsValue({
+      s_category: service.s_category,
+      status: service.status || 'active',
+      s_description: service.s_description
+    });
+  };
+
+  const handleUpdateProduct = async (values) => {
+    try {
+      await AxiosInstance.put(`/products/${editProductModal.product._id}`, values);
+      toast.success('Product updated!', { autoClose: 3000 });
+      setEditProductModal({ visible: false, product: null });
+      productForm.resetFields();
+      const productsRes = await AxiosInstance.get('/products');
+      setProducts(productsRes.data || []);
+      if (user?._id) {
+        setUserProducts((productsRes.data || []).filter(p => p.seller_id === user._id));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update', { autoClose: 5000 });
+    }
+  };
+
+  const handleUpdateService = async (values) => {
+    try {
+      await AxiosInstance.put(`/services/${editServiceModal.service._id}`, values);
+      toast.success('Service updated!', { autoClose: 3000 });
+      setEditServiceModal({ visible: false, service: null });
+      serviceForm.resetFields();
+      const servicesRes = await AxiosInstance.get('/services');
+      setServices(servicesRes.data || []);
+      if (user?._id) {
+        setUserServices((servicesRes.data || []).filter(s => s.seller_id === user._id));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update', { autoClose: 5000 });
+    }
+  };
+
+  const handleDeleteProduct = (productId) => {
+    Modal.confirm({
+      title: 'Delete Product',
+      content: 'Are you sure?',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await AxiosInstance.delete(`/products/${productId}`);
+          toast.success('Product deleted!', { autoClose: 3000 });
+          const productsRes = await AxiosInstance.get('/products');
+          setProducts(productsRes.data || []);
+          if (user?._id) {
+            setUserProducts((productsRes.data || []).filter(p => p.seller_id === user._id));
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to delete', { autoClose: 5000 });
+        }
+      }
+    });
+  };
+
+  const handleDeleteService = (serviceId) => {
+    Modal.confirm({
+      title: 'Delete Service',
+      content: 'Are you sure?',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          await AxiosInstance.delete(`/services/${serviceId}`);
+          toast.success('Service deleted!', { autoClose: 3000 });
+          const servicesRes = await AxiosInstance.get('/services');
+          setServices(servicesRes.data || []);
+          if (user?._id) {
+            setUserServices((servicesRes.data || []).filter(s => s.seller_id === user._id));
+          }
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to delete', { autoClose: 5000 });
+        }
+      }
+    });
+  };
+
+  // TABLE COLUMNS
   const userColumns = [
     { 
-      title: "Name", 
-      dataIndex: "name", 
-      key: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name)
-    },
-    { 
       title: "Email", 
-      dataIndex: "email", 
-      key: "email"
+      dataIndex: "universityMail", 
+      key: "universityMail",
     },
     { 
       title: "Role", 
       dataIndex: "role", 
       key: "role",
-      render: (role) => {
-        const colors = {
-          Farmer: 'green',
-          Business: 'blue',
-          Worker: 'orange'
-        };
-        return <Tag color={colors[role]}>{role}</Tag>;
-      }
+      render: (role) => (
+        <Tag color={role === 'admin' ? 'red' : 'blue'}>
+          {role?.toUpperCase() || 'USER'}
+        </Tag>
+      )
     },
     { 
-      title: "Location", 
-      dataIndex: "location", 
-      key: "location"
+      title: "Premium", 
+      dataIndex: "isPremium", 
+      key: "isPremium",
+      render: (isPremium) => (
+        <Tag color={isPremium ? 'gold' : 'default'} icon={isPremium ? <CrownOutlined /> : null}>
+          {isPremium ? 'PREMIUM' : 'Regular'}
+        </Tag>
+      )
     },
     { 
-      title: "Status", 
-      dataIndex: "status", 
-      key: "status",
-      render: (status) => (
-        <Tag color={status === "Active" ? "success" : "default"}>
-          {status}
+      title: "Welfare", 
+      dataIndex: "isWelfareReciever", 
+      key: "isWelfareReciever",
+      render: (isWelfare) => (
+        <Tag color={isWelfare ? 'green' : 'default'}>
+          {isWelfare ? 'YES' : 'NO'}
         </Tag>
       )
     },
     {
       title: "Actions",
       key: "actions",
-      render: () => (
+      render: (_, record) => (
         <Space>
           <Button 
             type="text" 
-            icon={<EyeOutlined />} 
-            className="text-blue-500 hover:text-blue-700"
-          />
-          <Button 
-            type="text" 
+            size="small"
             icon={<EditOutlined />} 
-            className="text-green-500 hover:text-green-700"
+            onClick={() => handleEditUser(record)}
           />
+          {record.role === 'admin' ? (
+            <Button 
+              type="text" 
+              danger
+              size="small"
+              onClick={() => handleRemoveAdmin(record._id)}
+            >
+              Remove Admin
+            </Button>
+          ) : (
+            <Button 
+              type="text" 
+              size="small"
+              icon={<SafetyOutlined />}
+              onClick={() => handleMakeAdmin(record._id)}
+            >
+              Make Admin
+            </Button>
+          )}
           <Button 
             type="text" 
+            danger
+            size="small"
             icon={<DeleteOutlined />} 
-            className="text-red-500 hover:text-red-700"
+            onClick={() => handleDeleteUser(record._id)}
           />
         </Space>
       )
     }
   ];
 
-  const productColumns = [
-    { 
-      title: "Product", 
-      dataIndex: "name", 
-      key: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name)
-    },
-    { 
-      title: "Category", 
-      dataIndex: "category", 
-      key: "category",
-      render: (category) => <Tag color="purple">{category}</Tag>
-    },
-    { 
-      title: "Price (Rs)", 
-      dataIndex: "price", 
-      key: "price",
-      sorter: (a, b) => a.price - b.price,
-      render: (price) => <span className="font-semibold">Rs {price}</span>
-    },
-    { 
-      title: "Stock", 
-      dataIndex: "stock", 
-      key: "stock",
-      sorter: (a, b) => a.stock - b.stock
-    },
-    { 
-      title: "Farmer", 
-      dataIndex: "farmer", 
-      key: "farmer"
-    },
-    { 
-      title: "Location", 
-      dataIndex: "location", 
-      key: "location"
-    },
+  const welfareColumns = [
     {
-      title: "Actions",
-      key: "actions",
-      render: () => (
-        <Space>
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
-            className="text-blue-500 hover:text-blue-700"
-          />
-          <Button 
-            type="text" 
-            icon={<DeleteOutlined />} 
-            className="text-red-500 hover:text-red-700"
-          />
-        </Space>
-      )
-    }
-  ];
-
-  const jobColumns = [
-    { 
-      title: "Job Title", 
-      dataIndex: "title", 
-      key: "title"
-    },
-    { 
-      title: "Worker", 
-      dataIndex: "worker", 
-      key: "worker"
-    },
-    { 
-      title: "Payment", 
-      dataIndex: "payment", 
-      key: "payment",
-      render: (payment) => <span className="font-semibold text-green-600">{payment}</span>
-    },
-    { 
-      title: "Deadline", 
-      dataIndex: "deadline", 
-      key: "deadline"
+      title: "User Email",
+      dataIndex: ["user_id", "universityMail"],
+      key: "userEmail",
+      render: (_, record) => record.user_id?.universityMail || 'N/A'
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <Tag color={status === "Open" ? "green" : "blue"} className="font-semibold">
-          {status}
-        </Tag>
-      ),
+      render: (status) => {
+        const colors = { pending: 'orange', approved: 'green', rejected: 'red' };
+        return <Tag color={colors[status]}>{status?.toUpperCase()}</Tag>;
+      }
+    },
+    {
+      title: "Note",
+      dataIndex: "note",
+      key: "note",
+      render: (note) => note || 'No note'
+    },
+    {
+      title: "Documents",
+      dataIndex: "documents",
+      key: "documents",
+      render: (docs) => docs?.length || 0
+    },
+    {
+      title: "Applied At",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (date) => new Date(date).toLocaleDateString()
     },
     {
       title: "Actions",
       key: "actions",
-      render: () => (
+      render: (_, record) => (
         <Space>
-          <Button 
-            type="text" 
-            icon={<EyeOutlined />} 
-            className="text-blue-500 hover:text-blue-700"
-          />
-          <Button 
-            type="text" 
-            icon={<EditOutlined />} 
-            className="text-orange-500 hover:text-orange-700"
-          />
+          {record.status === 'pending' ? (
+            <>
+              <Button
+                type="primary"
+                size="small"
+                icon={<CheckOutlined />}
+                onClick={() => handleApproveWelfare(record._id)}
+              >
+                Approve
+              </Button>
+              <Button
+                danger
+                size="small"
+                icon={<CloseOutlined />}
+                onClick={() => handleRejectWelfare(record._id)}
+              >
+                Reject
+              </Button>
+            </>
+          ) : (
+            <Tag color={record.status === 'approved' ? 'green' : 'red'}>
+              {record.status === 'approved' ? 'Approved' : 'Rejected'}
+            </Tag>
+          )}
         </Space>
       )
     }
-  ];
-
-  const menuItems = [
-    {
-      key: '1',
-      icon: <DashboardOutlined />,
-      label: 'Dashboard',
-    },
-    {
-      key: '2',
-      icon: <UserOutlined />,
-      label: 'Users',
-    },
-    {
-      key: '3',
-      icon: <ShopOutlined />,
-      label: 'Products',
-    },
-    {
-      key: '4',
-      icon: <FileTextOutlined />,
-      label: 'Jobs',
-    },
-    {
-      key: '5',
-      icon: <SettingOutlined />,
-      label: 'Settings',
-    },
   ];
 
   const userMenuItems = [
@@ -382,209 +613,405 @@ const AdminDashboard = () => {
       label: 'Profile',
     },
     {
-      key: '2',
-      icon: <SettingOutlined />,
-      label: 'Settings',
-    },
-    {
       type: 'divider',
     },
     {
-      key: '3',
+      key: '2',
       icon: <LogoutOutlined />,
       label: 'Logout',
       danger: true,
+      onClick: handleLogout
     },
   ];
 
-  const openJobs = jobs.filter(j => j.status === "Open").length;
+  const pendingWelfare = welfareApplications.filter(w => w.status === 'pending').length;
 
   return (
-    <Layout className="min-h-screen">
-      {/* Sidebar */}
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        breakpoint="lg"
-        className="bg-gradient-to-b from-indigo-700 to-indigo-900 shadow-xl"
-        theme="dark"
-      >
-        <div className="h-16 flex items-center justify-center text-white border-b border-indigo-600">
-          <h1 className="text-2xl font-bold tracking-wider">
-            {collapsed ? "RL" : "ResLink"}
-          </h1>
+    <Layout className="min-h-screen bg-gray-50">
+      <Header className="bg-white flex justify-between items-center px-6 shadow-md">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+          <p className="text-sm text-gray-500">Welcome, {user?.universityMail || 'Admin'}</p>
         </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          className="mt-4 bg-transparent"
-        />
-      </Sider>
+        <div className="flex items-center gap-6">
+          <Badge count={pendingWelfare} color="#f56a00">
+            <BellOutlined className="text-2xl text-gray-600 cursor-pointer hover:text-blue-500 transition" />
+          </Badge>
+          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+            <Space className="cursor-pointer hover:opacity-80 transition">
+              <Avatar size="large" icon={<UserOutlined />} className="bg-indigo-600" />
+              <span className="text-gray-700 font-medium hidden md:inline">{user?.universityMail || 'Admin'}</span>
+            </Space>
+          </Dropdown>
+        </div>
+      </Header>
 
-      {/* Main Layout */}
-      <Layout>
-        {/* Header */}
-        <Header className="bg-white flex justify-between items-center px-6 shadow-md">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500">Welcome back, Admin!</p>
-          </div>
-          <div className="flex items-center gap-6">
-            <Button 
-              type="text" 
-              icon={<SearchOutlined />} 
-              className="text-gray-600 hover:text-blue-500"
-            />
-            <Badge count={5} color="#f56a00">
-              <BellOutlined className="text-2xl text-gray-600 cursor-pointer hover:text-blue-500 transition" />
-            </Badge>
-            <Dropdown menu={{ items: userMenuItems, onClick: handleMenuClick }} placement="bottomRight">
-              <Space className="cursor-pointer hover:opacity-80 transition">
-                <Avatar size="large" icon={<UserOutlined />} className="bg-indigo-600" />
-                <span className="text-gray-700 font-medium hidden md:inline">{user?.universityMail || 'Admin User'}</span>
-              </Space>
-            </Dropdown>
-          </div>
-        </Header>
-
-        {/* Content */}
-        <Content className="m-6">
-          {/* Quick Stats */}
-          <Row gutter={[16, 16]} className="mb-8">
-            <Col xs={24} sm={12} lg={6}>
-              <Card className="shadow-lg rounded-xl border-l-4 border-indigo-600 hover:shadow-2xl transition-all duration-300">
-                <Statistic
-                  title={<span className="text-gray-600">Total Users</span>}
-                  value={userData.length}
-                  prefix={<UserOutlined className="text-indigo-600" />}
-                  valueStyle={{ color: '#4f46e5' }}
-                />
-                <div className="mt-2 flex items-center text-sm text-green-500">
-                  <RiseOutlined className="mr-1" />
-                  <span>12% increase</span>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card className="shadow-lg rounded-xl border-l-4 border-green-500 hover:shadow-2xl transition-all duration-300">
-                <Statistic
-                  title={<span className="text-gray-600">Products Listed</span>}
-                  value={products.length}
-                  prefix={<ShopOutlined className="text-green-500" />}
-                  valueStyle={{ color: '#22c55e' }}
-                />
-                <div className="mt-2 flex items-center text-sm text-green-500">
-                  <RiseOutlined className="mr-1" />
-                  <span>8% increase</span>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card className="shadow-lg rounded-xl border-l-4 border-yellow-500 hover:shadow-2xl transition-all duration-300">
-                <Statistic
-                  title={<span className="text-gray-600">Active Jobs</span>}
-                  value={openJobs}
-                  prefix={<FileTextOutlined className="text-yellow-500" />}
-                  valueStyle={{ color: '#eab308' }}
-                />
-                <div className="mt-2 text-sm text-gray-500">
-                  {jobs.length - openJobs} filled
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card className="shadow-lg rounded-xl border-l-4 border-purple-600 hover:shadow-2xl transition-all duration-300">
-                <Statistic
-                  title={<span className="text-gray-600">Revenue (Monthly)</span>}
-                  value={125000}
-                  prefix="Rs"
-                  valueStyle={{ color: '#9333ea' }}
-                />
-                <div className="mt-2 flex items-center text-sm text-red-500">
-                  <FallOutlined className="mr-1" />
-                  <span>3% decrease</span>
-                </div>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Tables Section */}
-          <div className="space-y-6">
-            <Card 
-              title={
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold">Users Management</span>
-                  <Button type="primary" icon={<PlusOutlined />} className="bg-indigo-600">
-                    Add User
-                  </Button>
-                </div>
-              }
-              extra={
-                <Button icon={<ExportOutlined />}>Export</Button>
-              }
-              className="shadow-lg rounded-xl"
-            >
-              <Table
-                columns={userColumns}
-                dataSource={userData}
-                pagination={{ pageSize: 5 }}
-                bordered
-                rowClassName={() => "hover:bg-gray-50 transition-colors"}
+      <Content className="m-6">
+        {/* Quick Stats */}
+        <Row gutter={[16, 16]} className="mb-8">
+          <Col xs={24} sm={12} lg={6}>
+            <Card className="shadow-lg rounded-xl border-l-4 border-indigo-600">
+              <Statistic
+                title="Total Users"
+                value={allUsers.length}
+                prefix={<TeamOutlined />}
+                valueStyle={{ color: '#4f46e5' }}
+              />
+              <div className="mt-2 flex items-center text-sm text-green-500">
+                <RiseOutlined className="mr-1" />
+                <span>All registered users</span>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card className="shadow-lg rounded-xl border-l-4 border-green-500">
+              <Statistic
+                title="All Products"
+                value={products.length}
+                prefix={<ShopOutlined />}
+                valueStyle={{ color: '#22c55e' }}
               />
             </Card>
-
-            <Card 
-              title={
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold">Products Inventory</span>
-                  <Button type="primary" icon={<PlusOutlined />} className="bg-green-600">
-                    Add Product
-                  </Button>
-                </div>
-              }
-              extra={
-                <Button icon={<ExportOutlined />}>Export</Button>
-              }
-              className="shadow-lg rounded-xl"
-            >
-              <Table
-                columns={productColumns}
-                dataSource={products}
-                pagination={{ pageSize: 5 }}
-                bordered
-                rowClassName={() => "hover:bg-gray-50 transition-colors"}
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card className="shadow-lg rounded-xl border-l-4 border-purple-500">
+              <Statistic
+                title="All Services"
+                value={services.length}
+                prefix={<ShopOutlined />}
+                valueStyle={{ color: '#9333ea' }}
               />
             </Card>
-
-            <Card 
-              title={
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold">Jobs Management</span>
-                  <Button type="primary" icon={<PlusOutlined />} className="bg-yellow-600">
-                    Post Job
-                  </Button>
-                </div>
-              }
-              extra={
-                <Button icon={<ExportOutlined />}>Export</Button>
-              }
-              className="shadow-lg rounded-xl"
-            >
-              <Table
-                columns={jobColumns}
-                dataSource={jobs}
-                pagination={{ pageSize: 5 }}
-                bordered
-                rowClassName={() => "hover:bg-gray-50 transition-colors"}
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card className="shadow-lg rounded-xl border-l-4 border-orange-500">
+              <Statistic
+                title="Pending Welfare"
+                value={pendingWelfare}
+                prefix={<SafetyOutlined />}
+                valueStyle={{ color: '#f97316' }}
               />
             </Card>
-          </div>
-        </Content>
-      </Layout>
+          </Col>
+        </Row>
+
+        {/* Tabs for All Features */}
+        <Card className="shadow-lg">
+          <Tabs
+            defaultActiveKey="users"
+            items={[
+              {
+                key: 'users',
+                label: <span><TeamOutlined /> User Management</span>,
+                children: (
+                  <Table
+                    columns={userColumns}
+                    dataSource={allUsers}
+                    rowKey="_id"
+                    pagination={{ pageSize: 10 }}
+                  />
+                )
+              },
+              {
+                key: 'welfare',
+                label: <span><SafetyOutlined /> Welfare Applications</span>,
+                children: (
+                  <Table
+                    columns={welfareColumns}
+                    dataSource={welfareApplications}
+                    rowKey="_id"
+                    pagination={{ pageSize: 10 }}
+                  />
+                )
+              },
+              {
+                key: 'my-products',
+                label: <span><ShopOutlined /> My Products</span>,
+                children: (
+                  <>
+                    <Card title="Create Product" style={{ marginBottom: 16 }}>
+                      <Form form={createProductForm} layout="vertical" onFinish={createProduct}>
+                        <Row gutter={16}>
+                          <Col span={12}>
+                            <Form.Item name="name" label="Product Name" rules={[{ required: true }]}>
+                              <Input placeholder="Enter product name" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name="price" label="Price (LKR)" rules={[{ required: true }]}>
+                              <InputNumber style={{ width: '100%' }} min={0} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name="category" label="Category" rules={[{ required: true }]}>
+                              <Select
+                                placeholder="Select category"
+                                options={productCategories.map(cat => ({ label: cat, value: cat }))}
+                                dropdownRender={(menu) => (
+                                  <>
+                                    {menu}
+                                    <Button
+                                      type="link"
+                                      onClick={() => {
+                                        const newCat = prompt('Enter new category:');
+                                        if (newCat && !productCategories.includes(newCat)) {
+                                          setProductCategories([...productCategories, newCat]);
+                                        }
+                                      }}
+                                    >
+                                      + Add Category
+                                    </Button>
+                                  </>
+                                )}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name="status" label="Status" initialValue="active">
+                              <Select options={statusOptions.map(s => ({ label: s, value: s }))} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={24}>
+                            <Form.Item name="p_description" label="Description">
+                              <TextArea rows={3} />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                        <Button type="primary" htmlType="submit">Create Product</Button>
+                      </Form>
+                    </Card>
+
+                    <List
+                      dataSource={userProducts}
+                      renderItem={(product) => (
+                        <List.Item
+                          actions={[
+                            <Button type="link" icon={<EditOutlined />} onClick={() => handleEditProduct(product)}>Edit</Button>,
+                            <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteProduct(product._id)}>Delete</Button>
+                          ]}
+                        >
+                          <List.Item.Meta
+                            title={<span>{product.name} - LKR {product.price}</span>}
+                            description={`${product.category} | ${product.status}`}
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  </>
+                )
+              },
+              {
+                key: 'my-services',
+                label: <span><ShopOutlined /> My Services</span>,
+                children: (
+                  <>
+                    <Card title="Create Service" style={{ marginBottom: 16 }}>
+                      <Form form={createServiceForm} layout="vertical" onFinish={createService}>
+                        <Row gutter={16}>
+                          <Col span={12}>
+                            <Form.Item name="s_category" label="Service Category" rules={[{ required: true }]}>
+                              <Select
+                                placeholder="Select category"
+                                options={serviceCategories.map(cat => ({ label: cat, value: cat }))}
+                                dropdownRender={(menu) => (
+                                  <>
+                                    {menu}
+                                    <Button
+                                      type="link"
+                                      onClick={() => {
+                                        const newCat = prompt('Enter new category:');
+                                        if (newCat && !serviceCategories.includes(newCat)) {
+                                          setServiceCategories([...serviceCategories, newCat]);
+                                        }
+                                      }}
+                                    >
+                                      + Add Category
+                                    </Button>
+                                  </>
+                                )}
+                              />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item name="status" label="Status" initialValue="active">
+                              <Select options={statusOptions.map(s => ({ label: s, value: s }))} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={24}>
+                            <Form.Item name="s_description" label="Description">
+                              <TextArea rows={3} />
+                            </Form.Item>
+                          </Col>
+                        </Row>
+                        <Button type="primary" htmlType="submit">Create Service</Button>
+                      </Form>
+                    </Card>
+
+                    <List
+                      dataSource={userServices}
+                      renderItem={(service) => (
+                        <List.Item
+                          actions={[
+                            <Button type="link" icon={<EditOutlined />} onClick={() => handleEditService(service)}>Edit</Button>,
+                            <Button type="link" danger icon={<DeleteOutlined />} onClick={() => handleDeleteService(service._id)}>Delete</Button>
+                          ]}
+                        >
+                          <List.Item.Meta
+                            title={service.s_category}
+                            description={`${service.status} | ${service.s_description || 'No description'}`}
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  </>
+                )
+              },
+              {
+                key: 'my-cart',
+                label: <span><ShoppingCartOutlined /> My Cart</span>,
+                children: (
+                  <Card title="Cart Items">
+                    {cartItemsWithDetails.length === 0 ? (
+                      <Typography.Text type="secondary">Your cart is empty</Typography.Text>
+                    ) : (
+                      <List
+                        dataSource={cartItemsWithDetails}
+                        renderItem={(item) => (
+                          <List.Item>
+                            <List.Item.Meta
+                              title={item.kind === 'product' ? item.details?.name : item.details?.s_category}
+                              description={`Quantity: ${item.qty} | ${item.kind}`}
+                            />
+                            {item.kind === 'product' && item.details && (
+                              <Typography.Text strong>
+                                LKR {(item.details.price * item.qty).toFixed(2)}
+                              </Typography.Text>
+                            )}
+                          </List.Item>
+                        )}
+                      />
+                    )}
+                  </Card>
+                )
+              },
+              {
+                key: 'apply-welfare',
+                label: <span><SafetyOutlined /> Apply for Welfare</span>,
+                children: (
+                  <Card title="Apply for Welfare">
+                    <Form form={welfareForm} layout="vertical" onFinish={applyWelfare}>
+                      <Form.Item label="Document URLs (comma separated)" name="documents">
+                        <TextArea rows={4} placeholder="https://... , https://..." />
+                      </Form.Item>
+                      <Form.Item label="Note" name="note">
+                        <TextArea rows={3} />
+                      </Form.Item>
+                      <Button type="primary" htmlType="submit">Submit Application</Button>
+                    </Form>
+                  </Card>
+                )
+              },
+              {
+                key: 'payments',
+                label: 'My Payments',
+                children: (
+                  <Card title="Payment History">
+                    <List
+                      dataSource={payments}
+                      renderItem={(payment) => (
+                        <List.Item>
+                          <List.Item.Meta
+                            title={`${payment.payment_type} - ${payment.status}`}
+                            description={`Amount: LKR ${payment.amount} | ${new Date(payment.createdAt).toLocaleDateString()}`}
+                          />
+                        </List.Item>
+                      )}
+                    />
+                  </Card>
+                )
+              }
+            ]}
+          />
+        </Card>
+      </Content>
+
+      {/* Edit Product Modal */}
+      <Modal
+        title="Edit Product"
+        open={editProductModal.visible}
+        onCancel={() => {
+          setEditProductModal({ visible: false, product: null });
+          productForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form form={productForm} layout="vertical" onFinish={handleUpdateProduct}>
+          <Form.Item name="name" label="Product Name" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="price" label="Price" rules={[{ required: true }]}>
+            <InputNumber style={{ width: '100%' }} min={0} />
+          </Form.Item>
+          <Form.Item name="category" label="Category" rules={[{ required: true }]}>
+            <Select options={productCategories.map(cat => ({ label: cat, value: cat }))} />
+          </Form.Item>
+          <Form.Item name="status" label="Status">
+            <Select options={statusOptions.map(s => ({ label: s, value: s }))} />
+          </Form.Item>
+          <Form.Item name="p_description" label="Description">
+            <TextArea rows={3} />
+          </Form.Item>
+          <Button type="primary" htmlType="submit">Update Product</Button>
+        </Form>
+      </Modal>
+
+      {/* Edit Service Modal */}
+      <Modal
+        title="Edit Service"
+        open={editServiceModal.visible}
+        onCancel={() => {
+          setEditServiceModal({ visible: false, service: null });
+          serviceForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form form={serviceForm} layout="vertical" onFinish={handleUpdateService}>
+          <Form.Item name="s_category" label="Category" rules={[{ required: true }]}>
+            <Select options={serviceCategories.map(cat => ({ label: cat, value: cat }))} />
+          </Form.Item>
+          <Form.Item name="status" label="Status">
+            <Select options={statusOptions.map(s => ({ label: s, value: s }))} />
+          </Form.Item>
+          <Form.Item name="s_description" label="Description">
+            <TextArea rows={3} />
+          </Form.Item>
+          <Button type="primary" htmlType="submit">Update Service</Button>
+        </Form>
+      </Modal>
+
+      {/* Edit User Modal */}
+      <Modal
+        title="Edit User"
+        open={editUserModal.visible}
+        onCancel={() => {
+          setEditUserModal({ visible: false, user: null });
+          editUserForm.resetFields();
+        }}
+        footer={null}
+      >
+        <Form form={editUserForm} layout="vertical" onFinish={handleUpdateUser}>
+          <Form.Item name="universityMail" label="Email">
+            <Input disabled />
+          </Form.Item>
+          <Form.Item name="role" label="Role">
+            <Select options={[{ label: 'User', value: 'user' }, { label: 'Admin', value: 'admin' }]} />
+          </Form.Item>
+          <Form.Item name="isPremium" label="Premium Status" valuePropName="checked">
+            <Select options={[{ label: 'Regular', value: false }, { label: 'Premium', value: true }]} />
+          </Form.Item>
+          <Button type="primary" htmlType="submit">Update User</Button>
+        </Form>
+      </Modal>
     </Layout>
   );
 };
