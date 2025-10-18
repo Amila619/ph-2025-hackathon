@@ -16,6 +16,16 @@ const UserDashboard = () => {
     const [userServices, setUserServices] = useState([]);
     const [payments, setPayments] = useState([]);
     const [payhereLoaded, setPayhereLoaded] = useState(false);
+    const [editProductModal, setEditProductModal] = useState({ visible: false, product: null });
+    const [editServiceModal, setEditServiceModal] = useState({ visible: false, service: null });
+    const [productForm] = Form.useForm();
+    const [serviceForm] = Form.useForm();
+    const [chats, setChats] = useState([]);
+    const [selectedChat, setSelectedChat] = useState(null);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [newMessage, setNewMessage] = useState('');
+    const [loadingChats, setLoadingChats] = useState(false);
+    const [sendingMessage, setSendingMessage] = useState(false);
 
     const onLogout = async () => {
         try {
@@ -65,16 +75,18 @@ const UserDashboard = () => {
                 }
                 
                 // Load dashboard data
-                const [pRes, sRes, cRes, payRes] = await Promise.all([
-                    AxiosInstance.get('/api/products'),
-                    AxiosInstance.get('/api/services'),
-                    AxiosInstance.get('/api/cart'),
-                    AxiosInstance.get('/api/payment/user')
+                const [pRes, sRes, cRes, payRes, chatsRes] = await Promise.all([
+                    AxiosInstance.get('/products'),
+                    AxiosInstance.get('/services'),
+                    AxiosInstance.get('/cart'),
+                    AxiosInstance.get('/payment/user'),
+                    AxiosInstance.get('/chats')
                 ]);
                 setProducts(pRes.data || []);
                 setServices(sRes.data || []);
                 setCart(cRes.data || { items: [] });
                 setPayments(payRes.data || []);
+                setChats(chatsRes.data?.data || []);
                 
                 // Load user's own products and services
                 if (me) {
@@ -96,19 +108,231 @@ const UserDashboard = () => {
 
     const applyWelfare = async (values) => {
         const docs = (values.documents || []).split(',').map(s => s.trim()).filter(Boolean);
-        await AxiosInstance.post('/api/welfare/apply', { documents: docs, note: values.note });
+        await AxiosInstance.post('/welfare/apply', { documents: docs, note: values.note });
+    };
+
+    const handleEditProduct = (product) => {
+        setEditProductModal({ visible: true, product });
+        productForm.setFieldsValue({
+            name: product.name,
+            price: product.price,
+            category: product.category,
+            p_description: product.p_description
+        });
+    };
+
+    const handleEditService = (service) => {
+        setEditServiceModal({ visible: true, service });
+        serviceForm.setFieldsValue({
+            s_category: service.s_category,
+            status: service.status,
+            s_description: service.s_description
+        });
+    };
+
+    const handleDeleteProduct = (product) => {
+        Modal.confirm({
+            title: 'Delete Product',
+            content: `Are you sure you want to delete "${product.name}"?`,
+            okText: 'Delete',
+            okType: 'danger',
+            onOk: () => deleteProduct(product._id)
+        });
+    };
+
+    const handleDeleteService = (service) => {
+        Modal.confirm({
+            title: 'Delete Service',
+            content: `Are you sure you want to delete "${service.s_category}"?`,
+            okText: 'Delete',
+            okType: 'danger',
+            onOk: () => deleteService(service._id)
+        });
+    };
+
+    const handleUpdateProduct = async (values) => {
+        await updateProduct(editProductModal.product._id, values);
+        setEditProductModal({ visible: false, product: null });
+        productForm.resetFields();
+    };
+
+    const handleUpdateService = async (values) => {
+        await updateService(editServiceModal.service._id, values);
+        setEditServiceModal({ visible: false, service: null });
+        serviceForm.resetFields();
+    };
+
+    // Chat functions
+    const loadChats = async () => {
+        try {
+            setLoadingChats(true);
+            const response = await AxiosInstance.get('/chats');
+            setChats(response.data?.data || []);
+        } catch (error) {
+            console.error('Error loading chats:', error);
+            message.error('Failed to load chats');
+        } finally {
+            setLoadingChats(false);
+        }
+    };
+
+    const selectChat = async (chat) => {
+        try {
+            setSelectedChat(chat);
+            const response = await AxiosInstance.get(`/chats/${chat._id}`);
+            setChatMessages(response.data?.data?.messages || []);
+            
+            // Mark messages as read
+            await AxiosInstance.put(`/chats/${chat._id}/read`);
+            
+            // Refresh chat list to update unread count
+            loadChats();
+        } catch (error) {
+            console.error('Error loading chat messages:', error);
+            message.error('Failed to load messages');
+        }
+    };
+
+    const sendChatMessage = async () => {
+        if (!newMessage.trim() || !selectedChat) return;
+        
+        try {
+            setSendingMessage(true);
+            const response = await AxiosInstance.post('/chats/message', {
+                chat_id: selectedChat._id,
+                message: newMessage.trim()
+            });
+            
+            // Update messages
+            setChatMessages(response.data?.data?.chat?.messages || []);
+            setNewMessage('');
+            
+            // Refresh chat list to update last message
+            loadChats();
+            
+            message.success('Message sent!');
+        } catch (error) {
+            console.error('Error sending message:', error);
+            message.error('Failed to send message');
+        } finally {
+            setSendingMessage(false);
+        }
+    };
+
+    const getOtherParticipant = (chat) => {
+        if (!chat || !chat.participants || !user) return null;
+        return chat.participants.find(p => p._id !== user._id);
+    };
+
+    const getUnreadCount = (chat) => {
+        if (!chat || !chat.messages || !user) return 0;
+        return chat.messages.filter(msg => 
+            msg.sender_id !== user._id && !msg.read
+        ).length;
     };
 
     const createProduct = async (values) => {
-        await AxiosInstance.post('/api/products', values);
-        const pRes = await AxiosInstance.get('/api/products');
-        setProducts(pRes.data || []);
+        try {
+            await AxiosInstance.post('/products', values);
+            const pRes = await AxiosInstance.get('/products');
+            const allProducts = pRes.data || [];
+            setProducts(allProducts);
+            
+            // Update user's products list
+            if (user) {
+                const userProds = allProducts.filter(p => p.seller_id === user._id);
+                setUserProducts(userProds);
+            }
+            message.success('Product created successfully!');
+        } catch (error) {
+            message.error('Failed to create product: ' + (error.response?.data?.message || error.message));
+        }
     };
 
     const createService = async (values) => {
-        await AxiosInstance.post('/api/services', values);
-        const sRes = await AxiosInstance.get('/api/services');
-        setServices(sRes.data || []);
+        try {
+            await AxiosInstance.post('/services', values);
+            const sRes = await AxiosInstance.get('/services');
+            const allServices = sRes.data || [];
+            setServices(allServices);
+            
+            // Update user's services list
+            if (user) {
+                const userServs = allServices.filter(s => s.seller_id === user._id);
+                setUserServices(userServs);
+            }
+            message.success('Service created successfully!');
+        } catch (error) {
+            message.error('Failed to create service: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const updateProduct = async (id, values) => {
+        try {
+            await AxiosInstance.put(`/products/${id}`, values);
+            const pRes = await AxiosInstance.get('/products');
+            const allProducts = pRes.data || [];
+            setProducts(allProducts);
+            
+            if (user) {
+                const userProds = allProducts.filter(p => p.seller_id === user._id);
+                setUserProducts(userProds);
+            }
+            message.success('Product updated successfully!');
+        } catch (error) {
+            message.error('Failed to update product: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const deleteProduct = async (id) => {
+        try {
+            await AxiosInstance.delete(`/products/${id}`);
+            const pRes = await AxiosInstance.get('/products');
+            const allProducts = pRes.data || [];
+            setProducts(allProducts);
+            
+            if (user) {
+                const userProds = allProducts.filter(p => p.seller_id === user._id);
+                setUserProducts(userProds);
+            }
+            message.success('Product deleted successfully!');
+        } catch (error) {
+            message.error('Failed to delete product: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const updateService = async (id, values) => {
+        try {
+            await AxiosInstance.put(`/services/${id}`, values);
+            const sRes = await AxiosInstance.get('/services');
+            const allServices = sRes.data || [];
+            setServices(allServices);
+            
+            if (user) {
+                const userServs = allServices.filter(s => s.seller_id === user._id);
+                setUserServices(userServs);
+            }
+            message.success('Service updated successfully!');
+        } catch (error) {
+            message.error('Failed to update service: ' + (error.response?.data?.message || error.message));
+        }
+    };
+
+    const deleteService = async (id) => {
+        try {
+            await AxiosInstance.delete(`/services/${id}`);
+            const sRes = await AxiosInstance.get('/services');
+            const allServices = sRes.data || [];
+            setServices(allServices);
+            
+            if (user) {
+                const userServs = allServices.filter(s => s.seller_id === user._id);
+                setUserServices(userServs);
+            }
+            message.success('Service deleted successfully!');
+        } catch (error) {
+            message.error('Failed to delete service: ' + (error.response?.data?.message || error.message));
+        }
     };
 
     const addToCart = async (payload) => {
@@ -395,34 +619,90 @@ const UserDashboard = () => {
                                     <List
                                         dataSource={userProducts}
                                         renderItem={(item) => (
-                                            <List.Item>
+                                            <List.Item
+                                                actions={[
+                                                    <Button 
+                                                        type="link" 
+                                                        onClick={() => handleEditProduct(item)}
+                                                        key="edit"
+                                                    >
+                                                        Edit
+                                                    </Button>,
+                                                    <Button 
+                                                        type="link" 
+                                                        danger 
+                                                        onClick={() => handleDeleteProduct(item)}
+                                                        key="delete"
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                ]}
+                                            >
                                                 <div className="flex justify-between items-center w-full">
                                                     <div>
                                                         <Typography.Text strong>{item.name}</Typography.Text>
                                                         <Typography.Text type="secondary"> - {item.category} - LKR {item.price}</Typography.Text>
+                                                        {item.p_description && (
+                                                            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                                                {item.p_description}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <Tag color="blue">Product</Tag>
                                                 </div>
                                             </List.Item>
                                         )}
                                     />
+                                    {userProducts.length === 0 && (
+                                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                            <Typography.Text type="secondary">No products created yet</Typography.Text>
+                                        </div>
+                                    )}
                                 </Card>
                                 
                                 <Card title="My Services">
                                     <List
                                         dataSource={userServices}
                                         renderItem={(item) => (
-                                            <List.Item>
+                                            <List.Item
+                                                actions={[
+                                                    <Button 
+                                                        type="link" 
+                                                        onClick={() => handleEditService(item)}
+                                                        key="edit"
+                                                    >
+                                                        Edit
+                                                    </Button>,
+                                                    <Button 
+                                                        type="link" 
+                                                        danger 
+                                                        onClick={() => handleDeleteService(item)}
+                                                        key="delete"
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                ]}
+                                            >
                                                 <div className="flex justify-between items-center w-full">
                                                     <div>
                                                         <Typography.Text strong>{item.s_category}</Typography.Text>
                                                         <Typography.Text type="secondary"> - {item.status}</Typography.Text>
+                                                        {item.s_description && (
+                                                            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                                                {item.s_description}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <Tag color="green">Service</Tag>
                                                 </div>
                                             </List.Item>
                                         )}
                                     />
+                                    {userServices.length === 0 && (
+                                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                            <Typography.Text type="secondary">No services created yet</Typography.Text>
+                                        </div>
+                                    )}
                                 </Card>
                             </>
                         )
@@ -512,9 +792,336 @@ const UserDashboard = () => {
                                 )}
                             </Card>
                         )
+                    },
+                    {
+                        key: 'messages',
+                        label: (
+                            <span>
+                                Messages {chats.reduce((sum, chat) => sum + getUnreadCount(chat), 0) > 0 && (
+                                    <Badge count={chats.reduce((sum, chat) => sum + getUnreadCount(chat), 0)} />
+                                )}
+                            </span>
+                        ),
+                        children: (
+                            <div className="flex gap-4" style={{ height: '600px' }}>
+                                {/* Chat List */}
+                                <Card 
+                                    title="Conversations" 
+                                    style={{ width: '350px', overflow: 'auto' }}
+                                    extra={
+                                        <Button 
+                                            icon={<span>🔄</span>} 
+                                            onClick={loadChats}
+                                            loading={loadingChats}
+                                            size="small"
+                                        >
+                                            Refresh
+                                        </Button>
+                                    }
+                                >
+                                    {chats.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                            <Typography.Text type="secondary">No conversations yet</Typography.Text>
+                                        </div>
+                                    ) : (
+                                        <List
+                                            dataSource={chats}
+                                            renderItem={(chat) => {
+                                                const otherUser = getOtherParticipant(chat);
+                                                const unreadCount = getUnreadCount(chat);
+                                                const isSelected = selectedChat?._id === chat._id;
+                                                
+                                                return (
+                                                    <List.Item
+                                                        onClick={() => selectChat(chat)}
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            backgroundColor: isSelected ? '#f0f2f5' : 'transparent',
+                                                            padding: '12px',
+                                                            borderRadius: '8px',
+                                                            marginBottom: '8px'
+                                                        }}
+                                                        className="hover:bg-gray-100"
+                                                    >
+                                                        <div style={{ width: '100%' }}>
+                                                            <div className="flex justify-between items-start">
+                                                                <div>
+                                                                    <Typography.Text strong>
+                                                                        {otherUser?.name?.fname || otherUser?.universityMail || 'Unknown User'}
+                                                                    </Typography.Text>
+                                                                    <div style={{ fontSize: '12px', color: '#888' }}>
+                                                                        {chat.item_type === 'product' ? '📦 Product' : '🛠️ Service'}
+                                                                    </div>
+                                                                </div>
+                                                                {unreadCount > 0 && (
+                                                                    <Badge count={unreadCount} />
+                                                                )}
+                                                            </div>
+                                                            {chat.last_message && (
+                                                                <Typography.Text 
+                                                                    type="secondary" 
+                                                                    style={{ 
+                                                                        fontSize: '13px',
+                                                                        display: 'block',
+                                                                        marginTop: '4px',
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}
+                                                                >
+                                                                    {chat.last_message}
+                                                                </Typography.Text>
+                                                            )}
+                                                            <Typography.Text 
+                                                                type="secondary" 
+                                                                style={{ fontSize: '11px', color: '#aaa' }}
+                                                            >
+                                                                {new Date(chat.last_message_at).toLocaleString()}
+                                                            </Typography.Text>
+                                                        </div>
+                                                    </List.Item>
+                                                );
+                                            }}
+                                        />
+                                    )}
+                                </Card>
+
+                                {/* Chat Messages */}
+                                <Card 
+                                    title={selectedChat ? (
+                                        <div>
+                                            <Typography.Text strong>
+                                                {getOtherParticipant(selectedChat)?.name?.fname || 'User'}
+                                            </Typography.Text>
+                                            <div style={{ fontSize: '12px', color: '#888' }}>
+                                                {selectedChat.item_type === 'product' ? '📦 Product Chat' : '🛠️ Service Chat'}
+                                            </div>
+                                        </div>
+                                    ) : 'Select a conversation'}
+                                    style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                                >
+                                    {!selectedChat ? (
+                                        <div style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center', 
+                                            height: '100%',
+                                            color: '#999'
+                                        }}>
+                                            <Typography.Text type="secondary">
+                                                Select a conversation to view messages
+                                            </Typography.Text>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                            {/* Messages List */}
+                                            <div 
+                                                style={{ 
+                                                    flex: 1, 
+                                                    overflowY: 'auto', 
+                                                    padding: '16px',
+                                                    backgroundColor: '#f9f9f9',
+                                                    borderRadius: '8px',
+                                                    marginBottom: '16px',
+                                                    maxHeight: '450px'
+                                                }}
+                                            >
+                                                {chatMessages.length === 0 ? (
+                                                    <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                                                        <Typography.Text type="secondary">
+                                                            No messages yet. Start the conversation!
+                                                        </Typography.Text>
+                                                    </div>
+                                                ) : (
+                                                    chatMessages.map((msg, index) => {
+                                                        const isCurrentUser = msg.sender_id === user?._id;
+                                                        return (
+                                                            <div
+                                                                key={index}
+                                                                style={{
+                                                                    display: 'flex',
+                                                                    justifyContent: isCurrentUser ? 'flex-end' : 'flex-start',
+                                                                    marginBottom: '12px'
+                                                                }}
+                                                            >
+                                                                <div
+                                                                    style={{
+                                                                        maxWidth: '70%',
+                                                                        padding: '10px 14px',
+                                                                        borderRadius: '12px',
+                                                                        backgroundColor: isCurrentUser ? '#1890ff' : '#fff',
+                                                                        color: isCurrentUser ? '#fff' : '#000',
+                                                                        boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                                                    }}
+                                                                >
+                                                                    <Typography.Text 
+                                                                        style={{ 
+                                                                            color: isCurrentUser ? '#fff' : '#000',
+                                                                            wordBreak: 'break-word'
+                                                                        }}
+                                                                    >
+                                                                        {msg.message}
+                                                                    </Typography.Text>
+                                                                    <div 
+                                                                        style={{ 
+                                                                            fontSize: '10px', 
+                                                                            marginTop: '4px',
+                                                                            opacity: 0.7,
+                                                                            textAlign: 'right'
+                                                                        }}
+                                                                    >
+                                                                        {new Date(msg.timestamp).toLocaleTimeString([], { 
+                                                                            hour: '2-digit', 
+                                                                            minute: '2-digit' 
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+
+                                            {/* Message Input */}
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <Input.TextArea
+                                                    value={newMessage}
+                                                    onChange={(e) => setNewMessage(e.target.value)}
+                                                    placeholder="Type a message..."
+                                                    autoSize={{ minRows: 1, maxRows: 3 }}
+                                                    onPressEnter={(e) => {
+                                                        if (!e.shiftKey) {
+                                                            e.preventDefault();
+                                                            sendChatMessage();
+                                                        }
+                                                    }}
+                                                />
+                                                <Button
+                                                    type="primary"
+                                                    onClick={sendChatMessage}
+                                                    loading={sendingMessage}
+                                                    disabled={!newMessage.trim()}
+                                                    icon={<span>📤</span>}
+                                                >
+                                                    Send
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </Card>
+                            </div>
+                        )
                     }
                 ]}
             />
+            
+            {/* Edit Product Modal */}
+            <Modal
+                title="Edit Product"
+                open={editProductModal.visible}
+                onCancel={() => {
+                    setEditProductModal({ visible: false, product: null });
+                    productForm.resetFields();
+                }}
+                footer={null}
+            >
+                <Form 
+                    form={productForm}
+                    layout="vertical" 
+                    onFinish={handleUpdateProduct}
+                >
+                    <Form.Item 
+                        name="name" 
+                        label="Product Name" 
+                        rules={[{ required: true, message: 'Please enter product name' }]}
+                    >
+                        <Input placeholder="Product Name" />
+                    </Form.Item>
+                    <Form.Item 
+                        name="price" 
+                        label="Price" 
+                        rules={[{ required: true, message: 'Please enter price' }]}
+                    >
+                        <InputNumber placeholder="Price" style={{ width: '100%' }} min={0} />
+                    </Form.Item>
+                    <Form.Item 
+                        name="category" 
+                        label="Category" 
+                        rules={[{ required: true, message: 'Please enter category' }]}
+                    >
+                        <Input placeholder="Category" />
+                    </Form.Item>
+                    <Form.Item 
+                        name="p_description" 
+                        label="Description"
+                    >
+                        <Input.TextArea placeholder="Description" rows={3} />
+                    </Form.Item>
+                    <Form.Item>
+                        <Space>
+                            <Button type="primary" htmlType="submit">
+                                Update Product
+                            </Button>
+                            <Button onClick={() => {
+                                setEditProductModal({ visible: false, product: null });
+                                productForm.resetFields();
+                            }}>
+                                Cancel
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            {/* Edit Service Modal */}
+            <Modal
+                title="Edit Service"
+                open={editServiceModal.visible}
+                onCancel={() => {
+                    setEditServiceModal({ visible: false, service: null });
+                    serviceForm.resetFields();
+                }}
+                footer={null}
+            >
+                <Form 
+                    form={serviceForm}
+                    layout="vertical" 
+                    onFinish={handleUpdateService}
+                >
+                    <Form.Item 
+                        name="s_category" 
+                        label="Service Category" 
+                        rules={[{ required: true, message: 'Please enter service category' }]}
+                    >
+                        <Input placeholder="Service Category" />
+                    </Form.Item>
+                    <Form.Item 
+                        name="status" 
+                        label="Status"
+                    >
+                        <Input placeholder="active or inactive" />
+                    </Form.Item>
+                    <Form.Item 
+                        name="s_description" 
+                        label="Description"
+                    >
+                        <Input.TextArea placeholder="Description" rows={3} />
+                    </Form.Item>
+                    <Form.Item>
+                        <Space>
+                            <Button type="primary" htmlType="submit">
+                                Update Service
+                            </Button>
+                            <Button onClick={() => {
+                                setEditServiceModal({ visible: false, service: null });
+                                serviceForm.resetFields();
+                            }}>
+                                Cancel
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+            </Modal>
             
             {/* Premium Upgrade Modal */}
             <Modal
