@@ -2,8 +2,8 @@ import { Button, Card, List, Typography, Tabs, Input, Form, InputNumber, Space, 
 import { AxiosInstance } from '../services/Axios.service';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useAuth } from '../context/Auth.context.jsx';
-import { initializePayHerePayment, loadPayHereScript } from '../utils/payhere.util.js';
+// import { initializePayHerePayment, loadPayHereScript } from '../utils/payhere.util.js';
+import { useAuth } from '../hooks/AuthContext.js';
 
 const UserDashboard = () => {
     const navigate = useNavigate();
