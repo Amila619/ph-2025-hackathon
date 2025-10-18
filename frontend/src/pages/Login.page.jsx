@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { AxiosInstance } from "../services/Axios.service";
 import { Button, Card, Form, Input, Typography, Checkbox, message } from "antd";
 import { 
   UserOutlined, 
@@ -19,12 +19,11 @@ const Login = () => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
+      const response = await AxiosInstance.post("/auth/login", {
         universityMail: values.universityMail,
       });
 
       if (response?.data?.message === "Verify OTP") {
-        message.success('OTP sent successfully! Please check your email.');
         
         // Handle "Remember me" functionality
         if (values.rememberMe) {
@@ -37,17 +36,14 @@ const Login = () => {
 
         // Navigate to the OTP verification page
         navigate('/verify-otp', { replace: true, state: { user: response.data.user } });
-      } else {
-        message.error(response.data.message || 'Login failed. Please try again.');
       }
     } catch (error) {
       console.error('Login error:', error);
       // If user not found, redirect to register page
       if (error.response?.status === 401) {
-        message.info('User not found. Please register an account.');
-        navigate('/signup', { replace: true });
-      } else {
-        message.error('An error occurred. Please try again.');
+        setTimeout(() => {
+          navigate('/signup', { replace: true });
+        }, 2000);
       }
     } finally {
       setLoading(false);
@@ -126,7 +122,7 @@ const Login = () => {
               >
                 <Input 
                   prefix={<UserOutlined className="text-gray-400" />} 
-                  placeholder="Enter your university email"
+                  placeholder="Enter your email"
                   className="rounded-lg"
                 />
               </Form.Item>
@@ -150,7 +146,7 @@ const Login = () => {
             <div className="text-center pt-4 border-t border-gray-200">
               <Text>
                 Don't have an account?{" "}
-                <Link href="/register" className="!text-[rgba(138,23,23,1)] hover:!text-[rgba(138,23,23,0.5)]">
+                <Link href="/signup" className="!text-[rgba(138,23,23,1)] hover:!text-[rgba(138,23,23,0.5)]">
                   Sign up now
                 </Link>
               </Text>

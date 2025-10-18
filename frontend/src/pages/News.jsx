@@ -44,7 +44,7 @@ function News() {
         {newsData.map((news, index) => (
           <div
             key={news.id}
-            className={`border-2 border-purple-500 rounded-lg bg-white transition-all duration-300 overflow-hidden ${expandedIndex === index ? "p-6" : "p-4"
+            className={`border-2 border-[#8A1717] rounded-lg bg-white transition-all duration-300 overflow-hidden ${expandedIndex === index ? "p-6" : "p-4"
               }`}
           >
             {/* Top Section (Always Visible) */}

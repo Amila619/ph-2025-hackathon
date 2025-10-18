@@ -9,26 +9,28 @@ export const AxiosInstance = axios.create({
   withCredentials: true,
 });
 
-
 AxiosInstance.interceptors.request.use(function (config) {
-
-  // post, put, delete
-  if (config.data) {
-    config.data = JSON.stringify(sanitizeObject(config.data));
+  // Add authorization token if it exists
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
-//   // get
+  // Sanitize request data (but don't double stringify - axios will handle JSON conversion)
+  if (config.data) {
+    config.data = sanitizeObject(config.data);
+  }
+
   if (config.params) {
-    config.params = JSON.stringify(sanitizeObject(config.params));
+    config.params = sanitizeObject(config.params);
   }
 
   return config;
 }, function (error) {
-
   toast.error("Something went wrong!");
   console.error(error);
-}
-);
+  return Promise.reject(error);
+});
 
 AxiosInstance.interceptors.response.use(function onFulfilled(response) {
 
@@ -40,6 +42,7 @@ AxiosInstance.interceptors.response.use(function onFulfilled(response) {
 }, function onRejected(error) {
   toast.error(error.response?.data?.message || "Something went wrong!");
   console.error(error);
+  return Promise.reject(error);
 });
 
 
