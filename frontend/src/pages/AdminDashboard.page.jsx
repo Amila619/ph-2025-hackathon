@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Layout, 
   Card, 
   Row, 
   Col, 
@@ -43,7 +42,6 @@ import { toast } from 'react-toastify';
 import { useAuth } from "../context/Auth.context";
 import { AxiosInstance } from "../services/Axios.service";
 
-const { Header, Content } = Layout;
 const { TextArea } = Input;
 
 const AdminDashboard = () => {
@@ -627,8 +625,8 @@ const AdminDashboard = () => {
   const pendingWelfare = welfareApplications.filter(w => w.status === 'pending').length;
 
   return (
-    <Layout className="min-h-screen bg-gray-50">
-      <Header className="bg-white flex justify-between items-center px-6 shadow-md">
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white flex justify-between items-center px-6 py-4 shadow-md">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
           <p className="text-sm text-gray-500">Welcome, {user?.universityMail || 'Admin'}</p>
@@ -644,9 +642,9 @@ const AdminDashboard = () => {
             </Space>
           </Dropdown>
         </div>
-      </Header>
+      </div>
 
-      <Content className="m-6">
+      <div className="m-6">
         {/* Quick Stats */}
         <Row gutter={[16, 16]} className="mb-8">
           <Col xs={24} sm={12} lg={6}>
@@ -933,7 +931,7 @@ const AdminDashboard = () => {
             ]}
           />
         </Card>
-      </Content>
+      </div>
 
       {/* Edit Product Modal */}
       <Modal
@@ -1012,7 +1010,7 @@ const AdminDashboard = () => {
           <Button type="primary" htmlType="submit">Update User</Button>
         </Form>
       </Modal>
-    </Layout>
+    </div>
   );
 };
 
