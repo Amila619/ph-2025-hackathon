@@ -1,55 +1,52 @@
 import React from "react";
 
 function Donation() {
-    return (
-        <div className="flex flex-col md:flex-row min-h-screen bg-gradient-to-br from-red-100 to-red-200 justify-center items-center px-6 md:px-24 py-16">
-
-            <div className="flex flex-col md:flex-row bg-white rounded-4xl shadow-2xl overflow-hidden w-full max-w-6xl">
-
-                {/* Left Side Text */}
-                <div className="flex flex-col justify-center items-start bg-red-800 md:w-1/2 p-12 md:p-24 text-white space-y-6">
-                    <h1 className="text-5xl md:text-7xl font-bold">
-                        Together
-                    </h1>
-                    <p className="text-xl md:text-3xl italic">
-                        We build,<br />We Help
-                    </p>
-                </div>
-
-                {/* Right Side Form */}
-                <div className="bg-red-50 md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
-                    {/* Header */}
-                    <div className="bg-red-800 text-white text-center py-4 rounded-t-2xl mb-6">
-                        <h2 className="text-2xl font-semibold">Support Them</h2>
-                    </div>
-
-                    {/* Body */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Enter Your Details</h3>
-                        <input
-                            type="text"
-                            placeholder="Your Name"
-                            className="w-full p-3 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-800"
-                        />
-                        <input
-                            type="email"
-                            placeholder="Email Address"
-                            className="w-full p-3 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-800"
-                        />
-                        <input
-                            type="number"
-                            placeholder="Amount"
-                            className="w-full p-3 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-800"
-                        />
-                        <button className="w-full bg-red-800 text-white py-3 text-lg rounded-2xl hover:bg-red-700 transition-shadow shadow-md">
-                            Donate
-                        </button>
-                    </div>
-                </div>
-
-            </div>
+  return (
+    <div className="flex justify-center items-center h-screen bg-[#f4f4f5] px-8 md:px-24">
+      <div className="flex flex-col md:flex-row bg-white justify-between items-center px-8 md:px-24 py-16 rounded-2xl shadow-lg space-x-12">
+        {/* Left Side Text */}
+        <div className="flex flex-row items-center space-x-6 mb-10 md:mb-0">
+          <h1 className="text-6xl md:text-8xl font-bold text-[#6b1d1d]">
+            Together
+          </h1>
+          <p className="text-lg md:text-3xl italic text-[#6b1d1d]">
+            We build,<br />We Help
+          </p>
         </div>
-    );
+
+        {/* Right Side Form */}
+        <div className="bg-[#f6f6f6] w-full max-w-sm rounded-2xl shadow-lg">
+          {/* Header */}
+          <div className="bg-[#6b1d1d] text-white text-center py-4 rounded-t-2xl">
+            <h2 className="text-2xl font-semibold">Support them</h2>
+          </div>
+
+          {/* Body */}
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">Enter details</h3>
+            <input
+              type="text"
+              placeholder="Your Name"
+              className="w-full p-3 mb-4 border border-[#b77d7d] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6b1d1d]"
+            />
+            <input
+              type="email"
+              placeholder="Email Address"
+              className="w-full p-3 mb-4 border border-[#b77d7d] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6b1d1d]"
+            />
+            <input
+              type="number"
+              placeholder="Amount"
+              className="w-full p-3 mb-4 border border-[#b77d7d] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6b1d1d]"
+            />
+            <button className="w-3/4 bg-[#6b1d1d] text-white py-3 text-lg rounded-2xl hover:bg-[#4d1212] transition block mx-auto">
+              Donate
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default Donation;
