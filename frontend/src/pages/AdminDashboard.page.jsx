@@ -191,6 +191,14 @@ const AdminDashboard = () => {
         setWelfareApplications(welfareRes.data || []);
         setPayments(paymentsRes.data || []);
 
+        // Log loaded data counts
+        console.log('Dashboard Data Loaded:');
+        console.log('- Total Users:', (usersRes.data || []).length);
+        console.log('- Total Products:', (productsRes.data || []).length);
+        console.log('- Total Services:', (servicesRes.data || []).length);
+        console.log('- Welfare Applications:', (welfareRes.data || []).length);
+        console.log('- Payments:', (paymentsRes.data || []).length);
+
         if (user?._id) {
           setUserProducts((productsRes.data || []).filter(p => p.seller_id === user._id));
           setUserServices((servicesRes.data || []).filter(s => s.seller_id === user._id));
