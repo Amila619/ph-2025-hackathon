@@ -8,7 +8,7 @@ function News() {
   const newsData = [
     {
       id: 1,
-      title: "New ICT Building Opening Ceremony",
+      title: "HelaSavi Launches Their Site",
       image: "https://via.placeholder.com/150",
       description:
         "The Faculty of Technology announced the grand opening of the new ICT building. The event will include guest speeches, cultural events, and a campus tour.",
