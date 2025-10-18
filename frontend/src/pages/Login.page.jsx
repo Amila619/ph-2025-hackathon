@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { Button, Card, Form, Input, Typography, Checkbox, message } from "antd";
 import { 
   UserOutlined, 
-  LockOutlined, 
   LoginOutlined,
   SafetyOutlined,
   ThunderboltOutlined,
@@ -13,36 +14,41 @@ const { Title, Text, Link } = Typography;
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: values.email,
-          password: values.password,
-        }),
-        credentials: 'include', // Important for cookies
+      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
+        universityMail: values.universityMail,
       });
 
-      const data = await response.json();
+      if (response?.data?.message === "Verify OTP") {
+        message.success('OTP sent successfully! Please check your email.');
+        
+        // Handle "Remember me" functionality
+        if (values.rememberMe) {
+          localStorage.setItem('universityMail', values.universityMail);
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.removeItem('universityMail');
+          localStorage.removeItem('rememberMe');
+        }
 
-      if (response.ok) {
-        message.success('Login successful!');
-        localStorage.setItem('auth', 'true');
-        localStorage.setItem('user', JSON.stringify(data.user));
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+        // Navigate to the OTP verification page
+        navigate('/verify-otp', { replace: true, state: { user: response.data.user } });
       } else {
-        message.error(data.message || 'Login failed. Please try again.');
+        message.error(response.data.message || 'Login failed. Please try again.');
       }
     } catch (error) {
       console.error('Login error:', error);
-      message.error('An error occurred. Please try again.');
+      // If user not found, redirect to register page
+      if (error.response?.status === 401) {
+        message.info('User not found. Please register an account.');
+        navigate('/signup', { replace: true });
+      } else {
+        message.error('An error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -50,8 +56,8 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white flex items-center justify-center p-4">      
-    <div className="max-w-6xl w-full grid md:grid-cols-2 gap-8 items-center">
-        {/* Left Side - Branding */}
+      <div className="max-w-6xl w-full grid md:grid-cols-2 gap-8 items-center">
+        {/* Left Side - Branding (from File 1) */}
         <div className="space-y-6 hidden md:block">
           <div className="space-y-4">
             <h1 className="text-5xl font-bold text-[#8A1717]">හෙළSavi</h1>
@@ -59,7 +65,6 @@ const Login = () => {
               Connecting Farmers, Businesses & Workers
             </p>
           </div>
-
           <div className="space-y-4 mt-8">
             <div className="flex items-start gap-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
               <SafetyOutlined className="text-3xl mt-1" />
@@ -70,7 +75,6 @@ const Login = () => {
                 </p>
               </div>
             </div>
-
             <div className="flex items-start gap-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
               <ThunderboltOutlined className="text-3xl mt-1" />
               <div>
@@ -80,7 +84,6 @@ const Login = () => {
                 </p>
               </div>
             </div>
-
             <div className="flex items-start gap-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
               <GlobalOutlined className="text-3xl mt-1" />
               <div>
@@ -93,21 +96,19 @@ const Login = () => {
           </div>
         </div>
 
-        {/* Right Side - Login Card */}
+        {/* Right Side - Login Card (Design from File 1, Functionality from File 2) */}
         <Card className="shadow-2xl rounded-2xl border-0">
           <div className="space-y-6">
-            {/* Logo/Icon */}
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br text-[#8A1717] rounded-full shadow-lg mb-4">
                 <LoginOutlined className="text-4xl text-white" />
               </div>
-              <Title level={2} className="mb-2">Welcome Back!</Title>
+              <Title level={2} className="mb-2">Sign In</Title>
               <Text type="secondary" className="text-base">
-                Sign in to access your dashboard
+                Enter your email to receive an OTP
               </Text>
             </div>
 
-            {/* Login Form */}
             <Form
               name="login"
               onFinish={onFinish}
@@ -116,70 +117,50 @@ const Login = () => {
               requiredMark={false}
             >
               <Form.Item
-                name="email"
+                name="universityMail"
                 label="Email"
-                rules={[
+                rules={[ 
                   { required: true, message: 'Please input your email!' },
                   { type: 'email', message: 'Please enter a valid email!' }
                 ]}
               >
                 <Input 
                   prefix={<UserOutlined className="text-gray-400" />} 
-                  placeholder="Enter your email"
+                  placeholder="Enter your university email"
                   className="rounded-lg"
                 />
               </Form.Item>
 
-              <Form.Item
-                name="password"
-                label="Password"
-                rules={[{ required: true, message: 'Please input your password!' }]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined className="text-gray-400" />}
-                  placeholder="Enter your password"
-                  className="rounded-lg"
-                />
+              <Form.Item name="rememberMe" valuePropName="checked">
+                <Checkbox>Remember me</Checkbox>
               </Form.Item>
-
-              <Form.Item>
-                <div className="flex items-center justify-between">
-                    <Checkbox>Remember me</Checkbox>
-                    <Link href="#" className="!text-[rgba(138,23,23,1)] hover:!text-[rgba(138,23,23,0)]">
-                    Forgot password?
-                    </Link>
-                </div>
-            </Form.Item>
 
               <Form.Item className="mb-0">
                 <Button
-                    // type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    icon={<LoginOutlined />}
-                        className="w-full h-12 text-lg font-semibold !bg-[#8A1717] border-0 hover:!bg-white shadow-lg !text-white hover:!text-black"
-                    >
-                    Sign In
+                  htmlType="submit"
+                  loading={loading}
+                  icon={<LoginOutlined />}
+                  className="w-full h-12 text-lg font-semibold !bg-[#8A1717] border-0 hover:!bg-white shadow-lg !text-white hover:!text-black"
+                >
+                  Continue
                 </Button>
               </Form.Item>
             </Form>
 
-            {/* Sign Up Link */}
             <div className="text-center pt-4 border-t border-gray-200">
               <Text>
                 Don't have an account?{" "}
                 <Link href="/register" className="!text-[rgba(138,23,23,1)] hover:!text-[rgba(138,23,23,0.5)]">
-                    Sign up now
+                  Sign up now
                 </Link>
-                </Text>
+              </Text>
             </div>
 
-            {/* Footer */}
             <div className="text-center">
               <Text className="text-xs">
                 By signing in, you agree to our{" "}
                 <Link href="#" className="!text-[rgba(138,23,23,1)] hover:!text-[rgba(138,23,23,0.5)]">
-                Terms of Service
+                  Terms of Service
                 </Link>{" "}
                 and{" "}
                 <Link href="#" className="!text-[rgba(138,23,23,1)] hover:!text-[rgba(138,23,23,0.5)]">
@@ -191,7 +172,6 @@ const Login = () => {
         </Card>
       </div>
 
-      {/* Mobile Branding */}
       <div className="md:hidden text-center mt-6 text-white">
         <Text className="text-white text-sm">
           © 2025 ResLink. All rights reserved.

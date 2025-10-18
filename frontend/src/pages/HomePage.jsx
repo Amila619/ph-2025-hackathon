@@ -10,10 +10,22 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white">
       <HeroSection />
-      <MarketplaceTabs />
-      <FeaturedListings />
-      <HowItWorks />
-      <WhyChooseUs />
+      
+      <section id="services">
+        <MarketplaceTabs />
+      </section>
+
+      <section id="products">
+        <FeaturedListings />
+      </section>
+
+      <section id="how">
+        <HowItWorks />
+      </section>
+
+      <section id="why">
+        <WhyChooseUs />
+      </section>
     </div>
   );
 }
