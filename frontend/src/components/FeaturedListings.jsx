@@ -113,10 +113,23 @@ const FeaturedListings = () => {
     event.preventDefault();
     event.stopPropagation();
     
-    console.log('Add to cart clicked', { item, isLoggedIn });
+    console.log('=== ADD TO CART CLICKED ===');
+    console.log('Item:', item);
+    console.log('isLoggedIn:', isLoggedIn);
+    console.log('User:', user);
     
     if (!isLoggedIn) {
       message.warning('Please login to add items to cart');
+      navigate('/login');
+      return;
+    }
+
+    // Validate JWT token exists
+    const token = localStorage.getItem('accessToken');
+    console.log('Token exists:', !!token);
+    if (!token) {
+      console.error('No access token found in localStorage');
+      message.error('Your session has expired. Please login again.');
       navigate('/login');
       return;
     }
@@ -127,17 +140,21 @@ const FeaturedListings = () => {
     }
 
     try {
-      console.log('Sending cart request:', { kind: 'Product', refId: item.id, qty: 1 });
       const response = await AxiosInstance.post('/cart/add', {
-        kind: 'Product',
+        kind: 'product',
         refId: item.id,
         qty: 1
       });
-      console.log('Cart response:', response);
-      // Success message shown by Axios interceptor
+      message.success(`${item.title || 'Product'} added to cart successfully! 🛒`);
     } catch (error) {
       console.error('Error adding to cart:', error);
-      // Error message shown by Axios interceptor
+      if (error.response?.status === 401) {
+        message.error('Your session has expired. Please login again.');
+        localStorage.removeItem('accessToken');
+        navigate('/login');
+      } else {
+        message.error(error.response?.data?.message || 'Failed to add to cart. Please try again.');
+      }
     }
   };
 
