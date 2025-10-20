@@ -14,6 +14,7 @@ import UserDashboard from "./pages/UserDashboard.page.jsx";
 import Contact from "./pages/Contact.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import { AuthProvider } from "./context/Auth.context.jsx";
+import { LanguageProvider } from "./context/Language.context.jsx";
 import News from "./pages/News.jsx";
 import PublicRoute from "./components/PublicRoute.jsx";
 
@@ -45,21 +46,23 @@ const router = createBrowserRouter(
 
 function App() {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-      />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

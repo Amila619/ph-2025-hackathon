@@ -35,7 +35,9 @@ import {
   CloseOutlined,
   TeamOutlined,
   ShopOutlined,
-  ShoppingCartOutlined
+  ShoppingCartOutlined,
+  DollarOutlined,
+  HeartOutlined
 } from "@ant-design/icons";
 import { toast } from 'react-toastify';
 
@@ -73,6 +75,10 @@ const AdminDashboard = () => {
   const [createServiceForm] = Form.useForm();
   const [editUserForm] = Form.useForm();
   const [welfareForm] = Form.useForm();
+  const [donationForm] = Form.useForm();
+  
+  // Donation states
+  const [donations, setDonations] = useState([]);
   
   // Category and Status management
   const [productCategories, setProductCategories] = useState(['Electronics', 'Books', 'Clothing', 'Food', 'Furniture', 'Sports', 'Other']);
@@ -184,12 +190,18 @@ const AdminDashboard = () => {
           return { data: [] };
         });
 
+        const donationsRes = await AxiosInstance.get('/donations').catch(err => {
+          console.error('Failed to load donations:', err);
+          return { data: [] };
+        });
+
         setAllUsers(usersRes.data || []);
         setProducts(productsRes.data || []);
         setServices(servicesRes.data || []);
         setCart(cartRes.data || { items: [] });
         setWelfareApplications(welfareRes.data || []);
         setPayments(paymentsRes.data || []);
+        setDonations(donationsRes.data || []);
 
         // Log loaded data counts
         console.log('Dashboard Data Loaded:');
@@ -198,6 +210,7 @@ const AdminDashboard = () => {
         console.log('- Total Services:', (servicesRes.data || []).length);
         console.log('- Welfare Applications:', (welfareRes.data || []).length);
         console.log('- Payments:', (paymentsRes.data || []).length);
+        console.log('- Donations:', (donationsRes.data || []).length);
 
         if (user?._id) {
           setUserProducts((productsRes.data || []).filter(p => p.seller_id === user._id));
@@ -378,6 +391,27 @@ const AdminDashboard = () => {
       welfareForm.resetFields();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to submit', { autoClose: 5000 });
+    }
+  };
+
+  // DONATION FUNCTIONALITY
+  const submitDonation = async (values) => {
+    try {
+      if (!values.donated_amount || values.donated_amount <= 0) {
+        toast.error('Please enter a valid donation amount', { autoClose: 3000 });
+        return;
+      }
+
+      await AxiosInstance.post('/donations', { donated_amount: values.donated_amount });
+      toast.success('Thank you for your donation!', { autoClose: 3000 });
+      donationForm.resetFields();
+      
+      // Reload donations
+      const donationsRes = await AxiosInstance.get('/donations');
+      setDonations(donationsRes.data || []);
+    } catch (error) {
+      console.error('Error submitting donation:', error);
+      toast.error(error.response?.data?.message || 'Failed to submit donation', { autoClose: 5000 });
     }
   };
 
@@ -672,6 +706,7 @@ const AdminDashboard = () => {
   ];
 
   const pendingWelfare = welfareApplications.filter(w => w.status === 'pending').length;
+  const totalDonations = donations.reduce((sum, d) => sum + (d.donated_amount || 0), 0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -696,37 +731,44 @@ const AdminDashboard = () => {
       <div className="m-6">
         {/* Quick Stats */}
         <Row gutter={[16, 16]} className="mb-8">
-          <Col xs={24} sm={12} lg={6}>
+          <Col xs={24} sm={12} lg={4}>
             <Card className="shadow-lg rounded-xl border-l-4 border-indigo-600">
               <Statistic
                 title="Total Users"
                 value={allUsers.length}
                 prefix={<TeamOutlined />}
-                valueStyle={{ color: '#4f46e5' }}
+                valueStyle={{ color: '#4f46e5', fontSize: '1.5rem' }}
               />
-              <div className="mt-2 flex items-center text-sm text-green-500">
-                <RiseOutlined className="mr-1" />
-                <span>All registered users</span>
-              </div>
             </Card>
           </Col>
-          <Col xs={24} sm={12} lg={6}>
+          <Col xs={24} sm={12} lg={4}>
             <Card className="shadow-lg rounded-xl border-l-4 border-green-500">
               <Statistic
-                title="All Products"
+                title="Products"
                 value={products.length}
                 prefix={<ShopOutlined />}
-                valueStyle={{ color: '#22c55e' }}
+                valueStyle={{ color: '#22c55e', fontSize: '1.5rem' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={4}>
+            <Card className="shadow-lg rounded-xl border-l-4 border-purple-500">
+              <Statistic
+                title="Services"
+                value={services.length}
+                prefix={<ShopOutlined />}
+                valueStyle={{ color: '#9333ea', fontSize: '1.5rem' }}
               />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card className="shadow-lg rounded-xl border-l-4 border-purple-500">
+            <Card className="shadow-lg rounded-xl border-l-4 border-blue-500">
               <Statistic
-                title="All Services"
-                value={services.length}
-                prefix={<ShopOutlined />}
-                valueStyle={{ color: '#9333ea' }}
+                title="Total Donations"
+                value={totalDonations}
+                prefix={<HeartOutlined />}
+                suffix="LKR"
+                valueStyle={{ color: '#3b82f6', fontSize: '1.5rem' }}
               />
             </Card>
           </Col>
@@ -736,7 +778,7 @@ const AdminDashboard = () => {
                 title="Pending Welfare"
                 value={pendingWelfare}
                 prefix={<SafetyOutlined />}
-                valueStyle={{ color: '#f97316' }}
+                valueStyle={{ color: '#f97316', fontSize: '1.5rem' }}
               />
             </Card>
           </Col>
@@ -975,6 +1017,74 @@ const AdminDashboard = () => {
                       )}
                     />
                   </Card>
+                )
+              },
+              {
+                key: 'donations',
+                label: <span><HeartOutlined /> Donations</span>,
+                children: (
+                  <>
+                    <Card title="Make a Donation" style={{ marginBottom: 16 }}>
+                      <Form form={donationForm} layout="vertical" onFinish={submitDonation}>
+                        <Form.Item 
+                          name="donated_amount" 
+                          label="Donation Amount (LKR)" 
+                          rules={[
+                            { required: true, message: 'Please enter donation amount' },
+                            { type: 'number', min: 1, message: 'Amount must be greater than 0' }
+                          ]}
+                        >
+                          <InputNumber 
+                            style={{ width: '100%' }} 
+                            min={1} 
+                            placeholder="Enter amount in LKR"
+                            formatter={value => `LKR ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                            parser={value => value.replace(/LKR\s?|(,*)/g, '')}
+                          />
+                        </Form.Item>
+                        <Button type="primary" htmlType="submit" size="large">
+                          Donate Now
+                        </Button>
+                      </Form>
+                    </Card>
+
+                    <Card title="All Donations">
+                      <Table
+                        dataSource={donations}
+                        rowKey="_id"
+                        pagination={{ pageSize: 10 }}
+                        columns={[
+                          {
+                            title: 'Donor',
+                            dataIndex: 'd_uid',
+                            key: 'd_uid',
+                            render: (d_uid) => {
+                              const donor = allUsers.find(u => u._id === d_uid);
+                              return donor?.universityMail || d_uid;
+                            }
+                          },
+                          {
+                            title: 'Amount',
+                            dataIndex: 'donated_amount',
+                            key: 'donated_amount',
+                            render: (amount) => `LKR ${amount.toLocaleString()}`
+                          },
+                          {
+                            title: 'Consumed',
+                            dataIndex: 'consumed_amount',
+                            key: 'consumed_amount',
+                            render: (amount) => `LKR ${amount.toLocaleString()}`
+                          },
+                          {
+                            title: 'Date',
+                            dataIndex: 'donatedAt',
+                            key: 'donatedAt',
+                            render: (date) => new Date(date).toLocaleDateString()
+                          }
+                        ]}
+                      />
+                    </Card>
+                  </>
                 )
               }
             ]}

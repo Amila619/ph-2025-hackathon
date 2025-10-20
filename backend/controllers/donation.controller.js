@@ -3,9 +3,30 @@ import { HTTP_STATUS } from "../const/http-status.const.js";
 
 export const createDonation = async (req, res) => {
   try {
-    const donation = await Donation.create(req.body);
+    const userId = req.user?.sub;
+    if (!userId) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: "Unauthorized" });
+    }
+
+    const { donated_amount } = req.body;
+    
+    if (!donated_amount || donated_amount <= 0) {
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: "Invalid donation amount" });
+    }
+
+    console.log('Creating donation:', { userId, donated_amount });
+
+    const donation = await Donation.create({
+      d_uid: userId,
+      donated_amount: donated_amount,
+      consumed_amount: 0,
+      donatedAt: new Date()
+    });
+
+    console.log('Donation created successfully:', donation);
     res.status(HTTP_STATUS.CREATED).json(donation);
   } catch (err) {
+    console.error('Error creating donation:', err);
     res.status(HTTP_STATUS.BAD_REQUEST).json({ message: err.message });
   }
 };

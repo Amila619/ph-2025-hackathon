@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Menu, LayoutDashboard, LogOut, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/Auth.context';
+import { useLanguage } from '../context/Language.context';
 import { AxiosInstance } from '../services/Axios.service';
 
 const translations = {
@@ -35,7 +36,7 @@ const translations = {
 
 const AnimatedNavbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [language, setLanguage] = useState('en');
+  const { language, toggleLanguage } = useLanguage();
   const t = translations[language];
   const navigate = useNavigate();
   const { isLoggedIn, role, user, setIsLoggedIn, setRole, setUser } = useAuth();
@@ -100,7 +101,7 @@ const AnimatedNavbar = () => {
           {/* Right Section: Language + Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <button
-              onClick={() => setLanguage(prev => prev === 'en' ? 'si' : 'en')}
+              onClick={toggleLanguage}
               className="px-3 py-1 text-sm font-medium text-gray-700 hover:text-red-800 transition-colors"
             >
               {language === 'en' ? 'සිං' : 'EN'}
