@@ -1,0 +1,148 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PayHere Complete Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 900px; margin: 0 auto; }
+        .section { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #007bff; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        form { background: white; padding: 20px; border: 2px solid #007bff; border-radius: 8px; margin: 20px 0; }
+        input { margin: 8px 0; padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        button:hover { background: #0056b3; }
+        .code { font-family: monospace; background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 14px; }
+        .debug { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px; }
+    </style>
+    <script type="text/javascript" src="https://sandbox.payhere.lk/lib/payhere.js"></script>
+</head>
+<body>
+    <h1>🔍 PayHere Complete Integration Test</h1>
+
+    <div class="section success">
+        <h3>✅ Test Configuration</h3>
+        <p><strong>Merchant ID:</strong> <span class="code">1228237</span></p>
+        <p><strong>Order ID:</strong> <span class="code">PREMIUM_TEST_1760752874178</span></p>
+        <p><strong>Amount:</strong> <span class="code">5000.00</span></p>
+        <p><strong>Currency:</strong> <span class="code">LKR</span></p>
+        <p><strong>Generated Hash:</strong> <span class="code">2A298B0D263DCE8FC5453711918A277F</span></p>
+    </div>
+
+    <div class="section warning">
+        <h3>⚠️ Important Notes</h3>
+        <ul>
+            <li>This test uses <strong>sandbox mode</strong> - no real money will be charged</li>
+            <li>If you get "Unauthorized" → Your merchant credentials are incorrect</li>
+            <li>If you reach PayHere checkout → Your integration is working correctly!</li>
+            <li>You can cancel the payment after verification</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>🚀 PayHere JavaScript API Test</h3>
+        <p>Click the button below to test the PayHere JavaScript API:</p>
+        
+        <button onclick="testPayHereJS()">Test PayHere JavaScript API</button>
+        
+        <div id="js-result" class="debug" style="display: none;"></div>
+    </div>
+
+    <div class="section">
+        <h3>📋 PayHere Form Test</h3>
+        <p>Alternative test using direct form submission:</p>
+        
+        <form method="post" action="https://sandbox.payhere.lk/pay/checkout">
+            <input type="text" name="merchant_id" value="1228237" readonly>
+            <input type="text" name="order_id" value="PREMIUM_TEST_1760752874178" readonly>
+            <input type="text" name="items" value="Premium User Upgrade Test" readonly>
+            <input type="text" name="currency" value="LKR" readonly>
+            <input type="text" name="amount" value="5000.00" readonly>
+            <input type="text" name="first_name" value="Test" readonly>
+            <input type="text" name="last_name" value="User" readonly>
+            <input type="text" name="email" value="test@example.com" readonly>
+            <input type="text" name="phone" value="0771234567" readonly>
+            <input type="text" name="address" value="No. 1, Test Street" readonly>
+            <input type="text" name="city" value="Colombo" readonly>
+            <input type="hidden" name="country" value="Sri Lanka">
+            <input type="hidden" name="return_url" value="http://localhost:3001/success">
+            <input type="hidden" name="cancel_url" value="http://localhost:3001/cancel">
+            <input type="hidden" name="notify_url" value="http://localhost:3001/notify">
+            <input type="text" name="hash" value="2A298B0D263DCE8FC5453711918A277F" readonly>
+            
+            <button type="submit">Test Direct Form Submission</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h3>🔧 Debug Information</h3>
+        <div class="debug">
+            <strong>Hash Calculation:</strong><br>
+            Data to Hash: 1228237PREMIUM_TEST_17607528741785000.00LKR3be1c20e55739d35b5ba0cf74a19c6ad<br>
+            Inner Secret Hash: 3be1c20e55739d35b5ba0cf74a19c6ad<br>
+            Final Hash: 2A298B0D263DCE8FC5453711918A277F
+        </div>
+    </div>
+
+    <script>
+        function testPayHereJS() {
+            const paymentData = {
+                "sandbox": true,
+                "merchant_id": "1228237",
+                "return_url": "http://localhost:3001/success",
+                "cancel_url": "http://localhost:3001/cancel",
+                "notify_url": "http://localhost:3001/notify",
+                "order_id": "PREMIUM_TEST_1760752874178",
+                "items": "Premium User Upgrade Test",
+                "amount": "5000.00",
+                "currency": "LKR",
+                "hash": "2A298B0D263DCE8FC5453711918A277F",
+                "first_name": "Test",
+                "last_name": "User",
+                "email": "test@example.com",
+                "phone": "0771234567",
+                "address": "No. 1, Test Street",
+                "city": "Colombo",
+                "country": "Sri Lanka",
+                "delivery_address": "No. 1, Test Street",
+                "delivery_city": "Colombo",
+                "delivery_country": "Sri Lanka",
+                "custom_1": "",
+                "custom_2": ""
+            };
+
+            console.log('PayHere JS Test Data:', paymentData);
+
+            // Set up callbacks
+            payhere.onCompleted = function onCompleted(orderId) {
+                console.log("Payment completed. OrderID:" + orderId);
+                document.getElementById('js-result').innerHTML = '✅ Payment completed! OrderID: ' + orderId;
+                document.getElementById('js-result').style.display = 'block';
+            };
+
+            payhere.onDismissed = function onDismissed() {
+                console.log("Payment dismissed");
+                document.getElementById('js-result').innerHTML = '❌ Payment was dismissed/cancelled';
+                document.getElementById('js-result').style.display = 'block';
+            };
+
+            payhere.onError = function onError(error) {
+                console.log("Error:" + error);
+                document.getElementById('js-result').innerHTML = '❌ Payment error: ' + error;
+                document.getElementById('js-result').style.display = 'block';
+            };
+
+            // Start payment
+            try {
+                payhere.startPayment(paymentData);
+                document.getElementById('js-result').innerHTML = '🚀 PayHere payment window opened';
+                document.getElementById('js-result').style.display = 'block';
+            } catch (error) {
+                document.getElementById('js-result').innerHTML = '❌ Error starting payment: ' + error.message;
+                document.getElementById('js-result').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PayHere Test</title>
+    <script type="text/javascript" src="https://sandbox.payhere.lk/lib/payhere.js"></script>
+</head>
+<body>
+    <h1>PayHere Test</h1>
+    <button onclick="testPayment()">Test Payment</button>
+    
+    <script>
+        function testPayment() {
+            const paymentData = {
+        "sandbox": true,
+        "merchant_id": "1232498",
+        "return_url": "http://localhost:5173/dashboard/user",
+        "cancel_url": "http://localhost:5173/dashboard/user",
+        "notify_url": "http://localhost:5000/api/payhere/notify",
+        "order_id": "PREMIUM_TEST_1760753879951",
+        "items": "Premium User Upgrade - Lifetime Access",
+        "amount": "5000.00",
+        "currency": "LKR",
+        "hash": "14F6CA6A21D7EBAAC65FBD4DF3B9C31D",
+        "first_name": "Test",
+        "last_name": "User",
+        "email": "test@example.com",
+        "phone": "0771234567",
+        "address": "No. 1, Test Street",
+        "city": "Colombo",
+        "country": "Sri Lanka",
+        "delivery_address": "No. 1, Test Street",
+        "delivery_city": "Colombo",
+        "delivery_country": "Sri Lanka",
+        "custom_1": "",
+        "custom_2": ""
+};
+            
+            console.log('Testing PayHere with data:', paymentData);
+            
+            payhere.onCompleted = function(orderId) {
+                console.log('Payment completed:', orderId);
+                alert('Payment completed!');
+            };
+            
+            payhere.onDismissed = function() {
+                console.log('Payment dismissed');
+                alert('Payment dismissed');
+            };
+            
+            payhere.onError = function(error) {
+                console.log('Payment error:', error);
+                alert('Payment error: ' + error);
+            };
+            
+            try {
+                payhere.startPayment(paymentData);
+                console.log('PayHere payment started');
+            } catch (error) {
+                console.error('Error starting payment:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

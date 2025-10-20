@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const payHereConfig = {
-  merchantId: process.env.PAYHERE_MERCHANT_ID || "1220001", // Default sandbox ID
-  merchantSecret: process.env.PAYHERE_MERCHANT_SECRET || "your-secret-here",
+  merchantId: process.env.PAYHERE_MERCHANT_ID , // Default sandbox ID
+  merchantSecret: process.env.PAYHERE_MERCHANT_SECRET,
   sandboxUrl: process.env.PAYHERE_SANDBOX_URL || "https://sandbox.payhere.lk/pay/checkout",
   liveUrl: process.env.PAYHERE_LIVE_URL || "https://www.payhere.lk/pay/checkout",
   notifyUrl: process.env.PAYHERE_NOTIFY_URL || "http://localhost:5000/api/payment/notify",

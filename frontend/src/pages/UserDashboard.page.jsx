@@ -3,7 +3,7 @@ import { AxiosInstance } from '../services/Axios.service';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/Auth.context.jsx';
-import { payHereConfig, submitPayHerePayment } from '../utils/payhere.util.js';
+import { initializePayHerePayment, loadPayHereScript } from '../utils/payhere.util.js';
 
 const UserDashboard = () => {
     const navigate = useNavigate();
@@ -15,6 +15,7 @@ const UserDashboard = () => {
     const [userProducts, setUserProducts] = useState([]);
     const [userServices, setUserServices] = useState([]);
     const [payments, setPayments] = useState([]);
+    const [payhereLoaded, setPayhereLoaded] = useState(false);
 
     const onLogout = async () => {
         try {
@@ -27,6 +28,21 @@ const UserDashboard = () => {
     useEffect(() => {
         if (!isLoggedIn) { navigate('/', { replace: true }); return; }
         if (role === 'admin') { navigate('/dashboard/admin', { replace: true }); return; }
+        
+        // Check if PayHere library is loaded
+        const initializePayHere = async () => {
+            try {
+                await loadPayHereScript();
+                setPayhereLoaded(true);
+                console.log('PayHere library initialized successfully');
+            } catch (error) {
+                console.error('Failed to load PayHere library:', error);
+                setPayhereLoaded(false);
+            }
+        };
+        
+        initializePayHere();
+        
         (async () => {
             try {
                 // Only refresh user data if we don't have it yet
@@ -110,15 +126,14 @@ const UserDashboard = () => {
             });
 
             const order_id = paymentResponse.data.order_id;
-            const amount = "5000.00";
+            const amount = "5000.00"; // Fixed amount for premium upgrade
             const currency = "LKR";
-            const items = "Premium User Upgrade";
 
-            // Get PayHere configuration
+            // Get PayHere configuration from backend
             const configResponse = await AxiosInstance.get('/api/payhere/config');
             const config = configResponse.data;
 
-            // Generate hash
+            // Generate hash using backend API (security best practice)
             const hashResponse = await AxiosInstance.post('/api/payhere/generate-hash', {
                 merchant_id: config.merchant_id,
                 order_id: order_id,
@@ -128,48 +143,70 @@ const UserDashboard = () => {
 
             const hash = hashResponse.data.hash;
 
-            // Create and submit HTML form to PayHere
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = config.payhere_url;
-            form.style.display = 'none';
-
-            // Add all required fields
-            const formData = {
-                merchant_id: config.merchant_id,
-                return_url: config.return_url,
-                cancel_url: config.cancel_url,
-                notify_url: config.notify_url,
-                order_id: order_id,
-                items: items,
-                currency: currency,
-                amount: amount,
-                first_name: user?.name?.fname || "User",
-                last_name: user?.name?.lname || "",
-                email: user?.universityMail || "",
-                phone: user?.contact?.phone || "",
-                address: user?.address?.street || "",
-                city: user?.address?.city || "",
-                country: user?.address?.country || "Sri Lanka",
-                hash: hash
+            // Put the payment variables here (following PayHere sample pattern)
+            const payment = {
+                "sandbox": true,
+                "merchant_id": config.merchant_id,    // Replace your Merchant ID
+                "return_url": undefined,     // Important
+                "cancel_url": undefined,     // Important
+                "notify_url": config.notify_url,
+                "order_id": order_id,
+                "items": "Premium User Upgrade - Lifetime Access",
+                "amount": amount,
+                "currency": currency,
+                "hash": hash, // Generated hash retrieved from backend
+                "first_name": user?.name?.fname || "User",
+                "last_name": user?.name?.lname || "Name",
+                "email": user?.universityMail || "user@example.com",
+                "phone": user?.contact?.phone || "0771234567",
+                "address": user?.address?.street || "No. 1, Main Street",
+                "city": user?.address?.city || "Colombo",
+                "country": "Sri Lanka",
+                "delivery_address": user?.address?.street || "No. 1, Main Street",
+                "delivery_city": user?.address?.city || "Colombo",
+                "delivery_country": "Sri Lanka",
+                "custom_1": "",
+                "custom_2": ""
             };
 
-            // Create hidden inputs for all form data
-            Object.keys(formData).forEach(key => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = formData[key];
-                form.appendChild(input);
-            });
+            // Validate required fields
+            if (!config.merchant_id) {
+                throw new Error('Merchant ID not found in config');
+            }
+            if (!hash) {
+                throw new Error('Hash not generated');
+            }
 
-            // Submit form
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-            
             // Store order ID for verification
             localStorage.setItem('pendingPremiumOrder', order_id);
+
+            // Initialize PayHere with callbacks and start payment
+            await initializePayHerePayment(payment, {
+                // Payment completed. It can be a successful failure.
+                onCompleted: (orderId) => {
+                    console.log("Payment completed. OrderID:" + orderId);
+                    message.success('🎉 Payment completed! Upgrading to premium...');
+                    setPremiumModalVisible(false);
+                    // Refresh user data to get premium status
+                    refreshMe();
+                    // Note: validate the payment and show success or failure page to the customer
+                },
+                
+                // Payment window closed
+                onDismissed: () => {
+                    console.log("Payment dismissed");
+                    message.info('Payment was cancelled');
+                    // Note: Prompt user to pay again or show an error page
+                },
+                
+                // Error occurred
+                onError: (error) => {
+                    console.log("Error:" + error);
+                    message.error('Payment failed: ' + error);
+                    // Note: show an error page
+                }
+            });
+
         } catch (err) {
             message.error('Failed to initiate payment. Please try again.');
             console.error('Payment initiation error:', err);
@@ -512,13 +549,15 @@ const UserDashboard = () => {
                         <Button size="large" onClick={() => setPremiumModalVisible(false)}>
                             Cancel
                         </Button>
-                        <Button 
-                            type="primary" 
-                            size="large" 
+                        <Button
+                            type="primary"
+                            size="large"
                             onClick={handlePayHerePayment}
+                            disabled={!payhereLoaded}
+                            loading={!payhereLoaded}
                             style={{ backgroundColor: '#faad14', borderColor: '#faad14' }}
                         >
-                            Pay with PayHere
+                            {payhereLoaded ? 'Pay with PayHere' : 'Loading PayHere...'}
                         </Button>
                     </Space>
                 </div>

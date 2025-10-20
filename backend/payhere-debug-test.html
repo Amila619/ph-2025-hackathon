@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PayHere Debug Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .debug { background: #f0f0f0; padding: 15px; margin: 20px 0; border-radius: 5px; }
+        form { background: white; padding: 20px; border: 2px solid #007bff; border-radius: 5px; }
+        input { margin: 5px 0; padding: 8px; width: 100%; }
+        button { background: #007bff; color: white; padding: 15px 30px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; }
+        .code { font-family: monospace; background: #f8f9fa; padding: 2px 6px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 PayHere Debug Test Form</h1>
+
+    <div class="debug">
+        <h3>Debug Information</h3>
+        <p><strong>Merchant ID:</strong> <span class="code">1228237</span></p>
+        <p><strong>Order ID:</strong> <span class="code">PREMIUM_1234567890_1760751647968</span></p>
+        <p><strong>Amount:</strong> <span class="code">5000.00</span></p>
+        <p><strong>Currency:</strong> <span class="code">LKR</span></p>
+        <p><strong>Hash:</strong> <span class="code">EF9D387CF3AF1CC62FF0E3CB0B077BA0</span></p>
+        <p><strong>Data to Hash:</strong> <span class="code">1228237PREMIUM_1234567890_17607516479685000.00LKR3be1c20e55739d35b5ba0cf74a19c6ad</span></p>
+        <p><strong>Inner Secret Hash:</strong> <span class="code">3be1c20e55739d35b5ba0cf74a19c6ad</span></p>
+    </div>
+
+    <form method="post" action="https://sandbox.payhere.lk/pay/checkout">
+        <h3>PayHere Test Form</h3>
+
+        <input type="text" name="merchant_id" value="1228237" readonly>
+        <input type="text" name="order_id" value="PREMIUM_1234567890_1760751647968" readonly>
+        <input type="text" name="items" value="Debug Test Payment" readonly>
+        <input type="text" name="currency" value="LKR" readonly>
+        <input type="text" name="amount" value="5000.00" readonly>
+        <input type="text" name="first_name" value="Test" readonly>
+        <input type="text" name="last_name" value="User" readonly>
+        <input type="text" name="email" value="test@example.com" readonly>
+        <input type="text" name="phone" value="0771234567" readonly>
+        <input type="text" name="address" value="No. 1, Test Street" readonly>
+        <input type="text" name="city" value="Colombo" readonly>
+
+        <input type="hidden" name="country" value="Sri Lanka">
+        <input type="hidden" name="return_url" value="http://localhost:3001/success">
+        <input type="hidden" name="cancel_url" value="http://localhost:3001/cancel">
+        <input type="hidden" name="notify_url" value="http://localhost:3001/notify">
+
+        <input type="text" name="hash" value="EF9D387CF3AF1CC62FF0E3CB0B077BA0" readonly>
+
+        <button type="submit">🚀 Test Payment</button>
+    </form>
+
+    <div class="debug">
+        <h3>⚠️ Troubleshooting Steps</h3>
+        <ol>
+            <li>If you get "Unauthorized" → Check your merchant credentials</li>
+            <li>If you get "Invalid hash" → Check hash generation</li>
+            <li>If you reach PayHere checkout → Your setup is correct!</li>
+            <li>Check browser console for any JavaScript errors</li>
+            <li>Verify all form fields match the hash calculation</li>
+        </ol>
+    </div>
+</body>
+</html>

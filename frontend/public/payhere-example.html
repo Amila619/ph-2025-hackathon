@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayHere Integration Example - Standalone</title>
+    <script type="text/javascript" src="https://sandbox.payhere.lk/lib/payhere.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        h2 {
+            color: #666;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .product-info {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #4CAF50;
+            margin: 20px 0;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-left: 4px solid #2196F3;
+            margin: 20px 0;
+        }
+        .warning {
+            background: #fff3e0;
+            padding: 15px;
+            border-left: 4px solid #ff9800;
+            margin: 20px 0;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚀 PayHere Integration Example</h1>
+        <p>This is a standalone HTML example demonstrating the PayHere JavaScript API integration.</p>
+    </div>
+
+    <div class="card">
+        <h2>Example 1: Simple Product Payment</h2>
+        <div class="product-info">
+            <strong>Product:</strong> Wireless Door Bell<br>
+            <strong>Price:</strong> LKR 1,000.00<br>
+            <strong>Order ID:</strong> <span id="order-1">ItemNo12345</span>
+        </div>
+        <button type="submit" id="payhere-payment-1">Pay LKR 1,000.00 with PayHere</button>
+    </div>
+
+    <div class="card">
+        <h2>Example 2: Premium Subscription</h2>
+        <div class="product-info">
+            <strong>Product:</strong> Premium User Upgrade - Lifetime Access<br>
+            <strong>Price:</strong> LKR 5,000.00<br>
+            <strong>Order ID:</strong> <span id="order-2">PREMIUM_12345</span>
+        </div>
+        <button type="submit" id="payhere-payment-2">Upgrade to Premium - LKR 5,000.00</button>
+    </div>
+
+    <div class="card">
+        <h2>📋 Implementation Notes</h2>
+        <div class="info">
+            <strong>✅ This example follows the official PayHere JavaScript API pattern:</strong>
+            <ul>
+                <li>PayHere script loaded from CDN</li>
+                <li>Callbacks defined (onCompleted, onDismissed, onError)</li>
+                <li>Payment object with all required fields</li>
+                <li>startPayment() called on button click</li>
+            </ul>
+        </div>
+        <div class="warning">
+            <strong>⚠️ Important Security Note:</strong><br>
+            In production, the <code>hash</code> field must be generated on your backend server using your merchant secret. 
+            Never expose your merchant secret in frontend code!
+        </div>
+    </div>
+
+    <script>
+        // Payment completed. It can be a successful failure.
+        payhere.onCompleted = function onCompleted(orderId) {
+            console.log("Payment completed. OrderID:" + orderId);
+            alert("Payment completed successfully! Order ID: " + orderId);
+            // Note: validate the payment and show success or failure page to the customer
+        };
+
+        // Payment window closed
+        payhere.onDismissed = function onDismissed() {
+            // Note: Prompt user to pay again or show an error page
+            console.log("Payment dismissed");
+            alert("Payment was cancelled. Please try again.");
+        };
+
+        // Error occurred
+        payhere.onError = function onError(error) {
+            // Note: show an error page
+            console.log("Error:" + error);
+            alert("Payment error: " + error);
+        };
+
+        // Example 1: Door bell wireless payment
+        var payment1 = {
+            "sandbox": true,
+            "merchant_id": "1220001",    // Replace your Merchant ID
+            "return_url": undefined,     // Important
+            "cancel_url": undefined,     // Important
+            "notify_url": "http://localhost:5000/api/payhere/notify",
+            "order_id": "ItemNo12345",
+            "items": "Door bell wireless",
+            "amount": "1000.00",
+            "currency": "LKR",
+            "hash": "45D3CBA93E9F2189BD630ADFE19AA6DC", // *Replace with generated hash retrieved from backend
+            "first_name": "Saman",
+            "last_name": "Perera",
+            "email": "samanp@gmail.com",
+            "phone": "0771234567",
+            "address": "No.1, Galle Road",
+            "city": "Colombo",
+            "country": "Sri Lanka",
+            "delivery_address": "No. 46, Galle road, Kalutara South",
+            "delivery_city": "Kalutara",
+            "delivery_country": "Sri Lanka",
+            "custom_1": "",
+            "custom_2": ""
+        };
+
+        // Example 2: Premium subscription payment
+        var payment2 = {
+            "sandbox": true,
+            "merchant_id": "1220001",    // Replace your Merchant ID
+            "return_url": undefined,     // Important
+            "cancel_url": undefined,     // Important
+            "notify_url": "http://localhost:5000/api/payhere/notify",
+            "order_id": "PREMIUM_12345",
+            "items": "Premium User Upgrade - Lifetime Access",
+            "amount": "5000.00",
+            "currency": "LKR",
+            "hash": "E5A9B4F6C2D8A3E7B9D4C6F8A2E5B7D9", // *Replace with generated hash retrieved from backend
+            "first_name": "Nimal",
+            "last_name": "Silva",
+            "email": "nimal@example.com",
+            "phone": "0771234568",
+            "address": "No.25, Kandy Road",
+            "city": "Kandy",
+            "country": "Sri Lanka",
+            "delivery_address": "No.25, Kandy Road",
+            "delivery_city": "Kandy",
+            "delivery_country": "Sri Lanka",
+            "custom_1": "",
+            "custom_2": ""
+        };
+
+        // Show the payhere.js popup, when "PayHere Pay" button is clicked
+        document.getElementById('payhere-payment-1').onclick = function (e) {
+            e.preventDefault();
+            console.log('Starting payment 1:', payment1);
+            payhere.startPayment(payment1);
+        };
+
+        document.getElementById('payhere-payment-2').onclick = function (e) {
+            e.preventDefault();
+            console.log('Starting payment 2:', payment2);
+            payhere.startPayment(payment2);
+        };
+
+        // For production integration with backend:
+        // 1. When button is clicked, make an AJAX request to your backend
+        // 2. Backend generates the hash using the merchant secret
+        // 3. Backend returns the payment object with the hash
+        // 4. Frontend calls payhere.startPayment() with the received data
+        
+        // Example with fetch API:
+        /*
+        async function initiatePayment(orderData) {
+            try {
+                // Get hash from backend
+                const response = await fetch('http://localhost:5000/api/payhere/generate-hash', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        merchant_id: '1220001',
+                        order_id: orderData.order_id,
+                        amount: orderData.amount,
+                        currency: 'LKR'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Create payment object with hash
+                const payment = {
+                    ...orderData,
+                    hash: data.hash
+                };
+                
+                // Start payment
+                payhere.startPayment(payment);
+            } catch (error) {
+                console.error('Failed to initiate payment:', error);
+                alert('Failed to initiate payment. Please try again.');
+            }
+        }
+        */
+    </script>
+</body>
+</html>
